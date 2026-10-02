@@ -1,0 +1,6 @@
+{
+  "name": "My Journey - Margono Wibowo",
+  "description": "Jurnal Pribadi, Habit & Time Tracker, Refleksi Harian, serta Manajemen Tugas Pak Margono Wibowo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

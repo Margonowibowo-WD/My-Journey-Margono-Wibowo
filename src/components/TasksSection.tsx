@@ -191,11 +191,11 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                   return (
                     <div
                       key={task.id}
-                      className={`p-3 rounded-2xl bg-white dark:bg-slate-900 border ${
+                      className={`p-3 rounded-2xl ${
                         task.completed
-                          ? 'border-l-4 border-l-emerald-500 border-slate-200 dark:border-slate-800'
-                          : 'border-l-4 border-l-rose-500 border-rose-200 dark:border-rose-900/60 shadow-xs'
-                      } shadow-sm flex items-center justify-between gap-3 transition-all hover:shadow-md`}
+                          ? 'bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 opacity-60 shadow-none'
+                          : 'bg-white dark:bg-slate-900 border border-l-4 border-l-rose-500 border-rose-200 dark:border-rose-900/60 shadow-xs'
+                      } flex items-center justify-between gap-3 transition-all hover:shadow-md`}
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <input
@@ -206,14 +206,20 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                         />
                         <div className="min-w-0 flex-1">
                           <p
-                            className={`text-xs font-bold text-slate-800 dark:text-slate-100 truncate ${
-                              task.completed ? 'line-through text-slate-400 dark:text-slate-500' : ''
+                            className={`text-xs font-bold truncate ${
+                              task.completed ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-100'
                             }`}
                           >
                             {task.title}
                           </p>
                           <div className="flex items-center gap-1.5 flex-wrap mt-1">
-                            <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded font-semibold border ${pColors[task.priority] || pColors.medium}`}>
+                            <span
+                              className={`inline-block text-[10px] px-1.5 py-0.5 rounded font-semibold border ${
+                                task.completed
+                                  ? 'text-slate-400 dark:text-slate-500 bg-slate-100/80 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/60'
+                                  : pColors[task.priority] || pColors.medium
+                              }`}
+                            >
                               Prioritas {task.priority === 'high' ? 'Tinggi' : task.priority === 'low' ? 'Rendah' : 'Sedang'}
                             </span>
                             {!task.completed ? (
@@ -221,8 +227,8 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                                 Belum Selesai
                               </span>
                             ) : (
-                              <span className="inline-block text-[10px] px-1.5 py-0.5 rounded font-bold border bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800">
-                                Selesai
+                              <span className="inline-block text-[10px] px-1.5 py-0.5 rounded font-medium border text-slate-400 dark:text-slate-500 bg-slate-100/80 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/60">
+                                ✓ Selesai
                               </span>
                             )}
                           </div>
@@ -298,10 +304,12 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                     <div
                       key={task.id}
                       className={`p-3 rounded-2xl ${
-                        isTaskMepet
+                        task.completed
+                          ? 'bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 opacity-60 shadow-none'
+                          : isTaskMepet
                           ? 'task-mepet-deadline-pulse'
                           : `bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 ${style.cardBorderClass}`
-                      } shadow-sm flex items-center justify-between gap-3 transition-all hover:shadow-md`}
+                      } flex items-center justify-between gap-3 transition-all hover:shadow-md`}
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <input
@@ -322,7 +330,7 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                                 : 'text-slate-800 dark:text-slate-100'
                             }`}
                           >
-                            {isTaskMepet && (
+                            {isTaskMepet && !task.completed && (
                               <span className="text-rose-600 dark:text-rose-400 shrink-0" title="Perhatian: Mepet Deadline!">
                                 🔥
                               </span>
@@ -330,11 +338,24 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                             <span className="truncate">{task.title}</span>
                           </p>
                           <div className="flex flex-wrap items-center gap-2 mt-1 text-[10px]">
-                            <span className="text-slate-500 dark:text-slate-400">Mulai: {task.scheduledDate || '-'}</span>
-                            <span className="text-slate-400 dark:text-slate-500">•</span>
-                            <span className={`px-2 py-0.5 rounded-md font-bold border ${style.badgeClass}`}>
-                              {task.deadline ? `Deadline: ${task.deadline} (${style.label})` : 'Tanpa Deadline'}
+                            <span className="text-slate-400 dark:text-slate-500">Mulai: {task.scheduledDate || '-'}</span>
+                            <span className="text-slate-300 dark:text-slate-600">•</span>
+                            <span
+                              className={`px-2 py-0.5 rounded-md border ${
+                                task.completed
+                                  ? 'text-slate-400 dark:text-slate-500 bg-slate-100/80 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/60 font-medium'
+                                  : `${style.badgeClass} font-bold`
+                              }`}
+                            >
+                              {task.completed
+                                ? (task.deadline ? `Deadline: ${task.deadline} (Selesai)` : 'Tanpa Deadline')
+                                : (task.deadline ? `Deadline: ${task.deadline} (${style.label})` : 'Tanpa Deadline')}
                             </span>
+                            {task.completed && (
+                              <span className="px-1.5 py-0.5 rounded font-medium border text-slate-400 dark:text-slate-500 bg-slate-100/80 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/60">
+                                ✓ Selesai
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>

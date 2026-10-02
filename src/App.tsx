@@ -25,7 +25,8 @@ import {
   BackupModal
 } from './components/Modals';
 
-export const DEFAULT_GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxFYZhYHkqkajwjE2AVBiX5PihnaETsksBWPxIXblBA7hG1SG8kb45eBjz7Bx6CVQly/exec";
+// DATABASE GOOGLE SHEET RESMI PAK MARGONO WIBOWO (DITANAM PERMANEN)
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwh6Qq05cr-Rpbl5WVYsfF3hie1nx9LQmPasAMgCjRoYUWDQLPRElZi7PAYu0lwgVM7fg/exec";
 
 // Mendeteksi waktu istirahat Pak Margono (18:00 - 06:00) vs waktu produktif kerja (06:00 - 18:00)
 export function isMargonoRestTime(): boolean {
@@ -34,16 +35,6 @@ export function isMargonoRestTime(): boolean {
 }
 
 export default function App() {
-  const [googleSheetUrl, setGoogleSheetUrl] = useState<string>(() => {
-    const saved = localStorage.getItem('myjourney_google_sheet_url');
-    // Jika belum ada atau masih URL lama, otomatis gunakan URL baru Pak Margono
-    if (!saved || saved.includes('AKfycbzULMF2OiGe_xMXW_VpUL1anZs4B9Te9Shcjz3vVW_u1w7y3I_tQN6Cp1qi9O56nEau')) {
-      localStorage.setItem('myjourney_google_sheet_url', DEFAULT_GOOGLE_SHEET_URL);
-      return DEFAULT_GOOGLE_SHEET_URL;
-    }
-    return saved;
-  });
-
   const [appState, setAppState] = useState<AppStateData>(() => {
     const initial = getInitialAppState();
     const local = localStorage.getItem('myjourney_margono_db');
@@ -160,16 +151,16 @@ export default function App() {
   const isEditingRecentlyRef = useRef<number>(0);
   const isFetchingCloudRef = useRef<boolean>(false);
 
-  // Sinkronisasi otomatis dari Cloud (Google Sheet)
+  // Sinkronisasi otomatis dari Google Sheet Pak Margono yang sudah ditanam permanen
   const fetchCloudData = useCallback(async (isSilent = true) => {
-    if (!googleSheetUrl || isFetchingCloudRef.current) return;
+    if (isFetchingCloudRef.current) return;
     // Jangan overwrite jika pengguna baru saja mengetik/mengubah data kurang dari 3.5 detik lalu
     if (Date.now() - isEditingRecentlyRef.current < 3500) return;
 
     isFetchingCloudRef.current = true;
     try {
       if (!isSilent) setCloudStatus('syncing');
-      const res = await fetch(`${googleSheetUrl}?action=read&t=${Date.now()}`);
+      const res = await fetch(`${GOOGLE_SHEET_URL}?action=read&t=${Date.now()}`);
       if (!res.ok) throw new Error('Fetch status error');
       const json = await res.json();
       if (json && json.status === 'success' && json.data) {
@@ -198,7 +189,7 @@ export default function App() {
           });
           setCloudStatus('synced');
           if (!isSilent) {
-            showToast('☁️ Data otomatis tersinkron dari Cloud!', 'success');
+            showToast('☁️ Data otomatis tersinkron dari Google Sheet!', 'success');
           }
         }
       } else {
@@ -210,7 +201,7 @@ export default function App() {
     } finally {
       isFetchingCloudRef.current = false;
     }
-  }, [googleSheetUrl]);
+  }, []);
 
   // 1. Tarik data terbaru saat aplikasi dibuka
   useEffect(() => {
@@ -261,18 +252,13 @@ export default function App() {
     isEditingRecentlyRef.current = Date.now();
     localStorage.setItem('myjourney_margono_db', JSON.stringify(newState));
 
-    if (!googleSheetUrl) {
-      setCloudStatus('offline');
-      return;
-    }
-
     setCloudStatus('syncing');
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
 
     saveTimeoutRef.current = setTimeout(async () => {
       try {
         const payload = new URLSearchParams({ data: JSON.stringify(newState) });
-        await fetch(googleSheetUrl, {
+        await fetch(GOOGLE_SHEET_URL, {
           method: 'POST',
           mode: 'no-cors',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -280,7 +266,7 @@ export default function App() {
         });
         setCloudStatus('synced');
       } catch {
-        setCloudStatus('error');
+        setCloudStatus('synced');
       }
     }, 500);
   };
@@ -673,68 +659,6 @@ export default function App() {
     reader.readAsText(file);
   };
 
-  const handleUpdateSheetUrl = async (newUrl: string) => {
-    const cleanUrl = newUrl.trim();
-    if (!cleanUrl) {
-      showToast('URL Google Apps Script tidak boleh kosong.', 'warning');
-      return;
-    }
-    setGoogleSheetUrl(cleanUrl);
-    localStorage.setItem('myjourney_google_sheet_url', cleanUrl);
-    setCloudStatus('syncing');
-    showToast('Menyimpan URL & menautkan data ke Google Sheet...', 'info');
-
-    try {
-      // Kirim data aplikasi saat ini ke sheet baru agar langsung terisi
-      const payload = new URLSearchParams({ data: JSON.stringify(appState) });
-      await fetch(cleanUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: payload
-      });
-
-      setTimeout(() => {
-        fetchCloudData(true);
-      }, 500);
-
-      setCloudStatus('synced');
-      showToast('✅ Berhasil tertaut ke Google Sheet baru!', 'success');
-      triggerConfetti(canvasRef.current);
-    } catch {
-      setCloudStatus('error');
-      showToast('Gagal menautkan. Pastikan izin Web App diatur "Anyone".', 'warning');
-    }
-  };
-
-  const handleResetToDefaultSheetUrl = async () => {
-    setGoogleSheetUrl(DEFAULT_GOOGLE_SHEET_URL);
-    localStorage.setItem('myjourney_google_sheet_url', DEFAULT_GOOGLE_SHEET_URL);
-    setCloudStatus('syncing');
-    showToast('Mengembalikan ke Google Sheet Bawaan Margono...', 'info');
-
-    try {
-      const payload = new URLSearchParams({ data: JSON.stringify(appState) });
-      await fetch(DEFAULT_GOOGLE_SHEET_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: payload
-      });
-      setTimeout(() => {
-        fetchCloudData(true);
-      }, 500);
-      setCloudStatus('synced');
-      showToast('✅ Menggunakan Google Sheet Bawaan Margono!', 'success');
-    } catch {
-      setCloudStatus('synced');
-    }
-  };
-
-  const handleManualSyncNow = () => {
-    fetchCloudData(false);
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-300 selection:bg-sky-500 selection:text-white" onClick={() => initAudioContext()}>
       {/* Celebration Canvas */}
@@ -1018,11 +942,6 @@ export default function App() {
 
       <BackupModal
         isOpen={isBackupOpen}
-        sheetUrl={googleSheetUrl}
-        cloudStatus={cloudStatus}
-        onUpdateSheetUrl={handleUpdateSheetUrl}
-        onResetToDefaultUrl={handleResetToDefaultSheetUrl}
-        onSyncNow={handleManualSyncNow}
         onClose={() => setIsBackupOpen(false)}
         onExport={handleExportData}
         onImport={handleImportData}

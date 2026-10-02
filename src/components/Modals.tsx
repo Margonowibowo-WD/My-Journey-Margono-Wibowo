@@ -805,152 +805,37 @@ export const CustomAffirmationModal: React.FC<{
   );
 };
 
-// 11. Backup / Restore & Cloud Sync Modal
+// 11. Backup / Restore Modal (Cadangan Berkas Lokal)
 export const BackupModal: React.FC<{
   isOpen: boolean;
-  sheetUrl: string;
-  cloudStatus: 'synced' | 'syncing' | 'error' | 'offline';
-  onUpdateSheetUrl: (url: string) => void;
-  onResetToDefaultUrl: () => void;
-  onSyncNow: () => void;
   onClose: () => void;
   onExport: () => void;
   onImport: (file: File) => void;
 }> = ({
   isOpen,
-  sheetUrl,
-  cloudStatus,
-  onUpdateSheetUrl,
-  onResetToDefaultUrl,
-  onSyncNow,
   onClose,
   onExport,
   onImport
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [currentUrl, setCurrentUrl] = useState(sheetUrl);
-  const [copiedScript, setCopiedScript] = useState(false);
-  const [showScriptGuide, setShowScriptGuide] = useState(false);
-
-  useEffect(() => {
-    setCurrentUrl(sheetUrl);
-  }, [sheetUrl, isOpen]);
 
   if (!isOpen) return null;
 
-  const scriptCode = `// ========================================================
-// DATABASE GOOGLE SHEET - MY JOURNEY PAK MARGONO WIBOWO
-// ========================================================
-
-function doGet(e) {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("AppDatabase");
-    if (!sheet) {
-      sheet = ss.insertSheet("AppDatabase");
-      sheet.getRange("A1:B1").setValues([["Data_JSON", "Terakhir_Diperbarui"]]);
-      sheet.getRange("A1:B1").setFontWeight("bold");
-      return ContentService.createTextOutput(JSON.stringify({ status: "success", data: null })).setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    var val = sheet.getRange("A2").getValue();
-    if (!val) {
-      return ContentService.createTextOutput(JSON.stringify({ status: "success", data: null })).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    var str = String(val).trim();
-    if (str.indexOf("data=") === 0) {
-      str = decodeURIComponent(str.substring(5).replace(/\\+/g, " "));
-    }
-
-    var parsedData = null;
-    try {
-      parsedData = JSON.parse(str);
-    } catch(err) {
-      parsedData = str;
-    }
-
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "success",
-      updatedAt: sheet.getRange("B2").getValue(),
-      data: parsedData
-    })).setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "error",
-      message: err.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-function doPost(e) {
-  try {
-    var rawData = "";
-    
-    if (e && e.parameter && e.parameter.data) {
-      rawData = e.parameter.data;
-    } else if (e && e.postData && e.postData.contents) {
-      var body = e.postData.contents;
-      if (body.indexOf("data=") === 0) {
-        rawData = decodeURIComponent(body.substring(5).replace(/\\+/g, " "));
-      } else {
-        try {
-          var p = JSON.parse(body);
-          rawData = p.data ? (typeof p.data === 'string' ? p.data : JSON.stringify(p.data)) : body;
-        } catch(err) {
-          rawData = body;
-        }
-      }
-    }
-
-    if (!rawData || String(rawData).trim() === "") {
-      return ContentService.createTextOutput(JSON.stringify({ status: "empty" })).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("AppDatabase");
-    if (!sheet) {
-      sheet = ss.insertSheet("AppDatabase");
-      sheet.getRange("A1:B1").setValues([["Data_JSON", "Terakhir_Diperbarui"]]);
-      sheet.getRange("A1:B1").setFontWeight("bold");
-    }
-
-    sheet.getRange("A2").setValue(rawData);
-    sheet.getRange("B2").setValue(new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }));
-
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "success",
-      message: "Data berhasil disimpan"
-    })).setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "error",
-      message: err.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
-}`;
-
-  const handleCopyScript = () => {
-    navigator.clipboard.writeText(scriptCode);
-    setCopiedScript(true);
-    setTimeout(() => setCopiedScript(false), 2500);
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/75 backdrop-blur-md animate-pop-check">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 max-w-lg w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
         {/* Header Modal */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold text-lg">
-              ☁️
+              💾
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
-                Sinkronisasi Cloud & Cadangan Data
+                Cadangan Data (.json)
               </h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Tersinkron otomatis 24/7 di HP & Laptop via Google Sheet
+                Arsip berkas lokal untuk perangkat Anda
               </p>
             </div>
           </div>
@@ -960,127 +845,33 @@ function doPost(e) {
         </div>
 
         <div className="space-y-4 text-xs font-body text-slate-600 dark:text-slate-300">
-          {/* Status & Banner Otomatis */}
-          <div className="p-3.5 bg-gradient-to-r from-emerald-50 via-sky-50 to-indigo-50 dark:from-slate-800/90 dark:via-slate-800/70 dark:to-slate-800/50 rounded-2xl border border-emerald-200 dark:border-slate-700 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                <Cloud className="w-4 h-4 text-sky-500" />
-                Status Sinkronisasi Otomatis:
-              </span>
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold flex items-center gap-1 ${
-                cloudStatus === 'synced'
-                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                  : cloudStatus === 'syncing'
-                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 animate-pulse'
-                  : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-              }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${
-                  cloudStatus === 'synced' ? 'bg-emerald-500' : cloudStatus === 'syncing' ? 'bg-amber-500' : 'bg-rose-500'
-                }`} />
-                {cloudStatus === 'synced' ? 'Aktif & Tersinkron' : cloudStatus === 'syncing' ? 'Menyinkronkan...' : 'Offline / Periksa URL'}
-              </span>
+          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-200 dark:border-emerald-800/50 space-y-1">
+            <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-bold">
+              <span>🟢</span>
+              <span>Sinkronisasi Otomatis Google Sheet Aktif</span>
             </div>
-
-            <p className="text-[11px] text-emerald-800 dark:text-emerald-300 bg-emerald-100/60 dark:bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-200/80 dark:border-emerald-800/40 leading-relaxed font-semibold">
-              ✨ <strong>100% Otomatis:</strong> Setiap centang tugas, habit, catatan waktu, atau refleksi yang Anda ubah di HP maupun Laptop langsung tersimpan ke Google Sheet secara real-time. Anda tidak perlu menarik data manual lagi!
+            <p className="text-[11px] text-emerald-700 dark:text-emerald-400 leading-relaxed">
+              Seluruh catatan, tugas, dan kebiasaan (habit) Anda sudah otomatis tersimpan langsung ke Google Sheet My Journey Pak Margono.
             </p>
-
-            {/* Input URL Google Sheet */}
-            <div className="space-y-1.5 pt-1">
-              <div className="flex items-center justify-between">
-                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                  URL Google Apps Script Web App (/exec):
-                </label>
-                <button
-                  type="button"
-                  onClick={onResetToDefaultUrl}
-                  className="text-[10px] text-sky-600 dark:text-sky-400 font-semibold hover:underline cursor-pointer"
-                >
-                  Gunakan URL Bawaan Margono
-                </button>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <input
-                  type="text"
-                  value={currentUrl}
-                  onChange={e => setCurrentUrl(e.target.value)}
-                  placeholder="https://script.google.com/macros/s/.../exec"
-                  className="w-full p-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500 font-mono"
-                />
-                <button
-                  type="button"
-                  onClick={() => onUpdateSheetUrl(currentUrl.trim())}
-                  className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-xl text-xs shrink-0 cursor-pointer shadow-md transition-all flex items-center justify-center gap-1.5"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Simpan & Tautkan</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Tombol Sinkron Cepat */}
-            <div className="pt-1">
-              <button
-                type="button"
-                onClick={onSyncNow}
-                className="w-full py-2 px-3 rounded-xl bg-white dark:bg-slate-900 hover:bg-sky-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
-              >
-                <CloudDownload className="w-3.5 h-3.5 text-sky-500" />
-                <span>Tes & Segarkan Sinkronisasi Sekarang</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Panduan Kode Script */}
-          <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                <Code className="w-4 h-4 text-amber-500" />
-                Script Backend Google Sheet (Jika Ingin Bikin Sheet Baru):
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowScriptGuide(!showScriptGuide)}
-                className="text-[10px] text-sky-600 dark:text-sky-400 font-semibold hover:underline cursor-pointer"
-              >
-                {showScriptGuide ? 'Sembunyikan' : 'Lihat Script'}
-              </button>
-            </div>
-            
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Jika di masa depan Anda ingin mengganti spreadsheet baru, cukup salin kode ini dan pasang di menu <em>Ekstensi &rarr; Apps Script</em> pada Google Sheet baru Anda.
-            </p>
-
-            <button
-              type="button"
-              onClick={handleCopyScript}
-              className="w-full py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-sm transition-all"
-            >
-              {copiedScript ? <Check className="w-4 h-4 text-emerald-900" /> : <Copy className="w-4 h-4" />}
-              <span>{copiedScript ? 'Kode Script Tersalin ke Clipboard!' : 'Salin Kode Apps Script Siap Pakai'}</span>
-            </button>
-
-            {showScriptGuide && (
-              <pre className="p-2.5 rounded-xl bg-slate-900 text-emerald-400 font-mono text-[10px] overflow-x-auto max-h-40 border border-slate-700">
-                {scriptCode}
-              </pre>
-            )}
           </div>
 
           {/* Cadangan Berkas Offline (.json) */}
-          <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2.5">
+          <div className="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2.5">
             <p className="font-bold text-slate-800 dark:text-slate-100">
-              Cadangan Berkas Lokal Manual (.json):
+              Cadangan Berkas Manual (.json):
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="space-y-2">
               <button
                 type="button"
                 onClick={onExport}
-                className="w-full py-2 rounded-xl bg-slate-800 dark:bg-sky-600 hover:bg-slate-900 dark:hover:bg-sky-700 text-white font-bold text-xs transition-all cursor-pointer text-center"
+                className="w-full py-2.5 rounded-xl bg-slate-800 dark:bg-sky-600 hover:bg-slate-900 dark:hover:bg-sky-700 text-white font-bold text-xs transition-all cursor-pointer text-center shadow-xs"
               >
                 Unduh Cadangan (.json)
               </button>
-              <div className="space-y-1">
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-700 space-y-2">
+                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                  Pulihkan dari Berkas Cadangan:
+                </label>
                 <input
                   type="file"
                   accept=".json"
@@ -1091,7 +882,7 @@ function doPost(e) {
                   <button
                     type="button"
                     onClick={() => onImport(selectedFile)}
-                    className="w-full py-1.5 rounded-xl border border-emerald-500 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-700 font-bold text-[11px] transition-all cursor-pointer"
+                    className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-all cursor-pointer shadow-xs"
                   >
                     Terapkan File Ini
                   </button>

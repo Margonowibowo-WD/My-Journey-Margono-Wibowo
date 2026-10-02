@@ -838,16 +838,42 @@ export const BackupModal: React.FC<{
 
   if (!isOpen) return null;
 
-  const scriptCode = `// GOOGLE APPS SCRIPT DATABASE MY JOURNEY MARGONO
+  const scriptCode = `// ========================================================
+// DATABASE GOOGLE SHEET - MY JOURNEY PAK MARGONO WIBOWO
+// ========================================================
+
 function doGet(e) {
   try {
-    var sheet = getOrCreateSheet();
-    var dataCell = sheet.getRange("A2").getValue();
-    var responseData = dataCell ? JSON.parse(dataCell) : null;
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("AppDatabase");
+    if (!sheet) {
+      sheet = ss.insertSheet("AppDatabase");
+      sheet.getRange("A1:B1").setValues([["Data_JSON", "Terakhir_Diperbarui"]]);
+      sheet.getRange("A1:B1").setFontWeight("bold");
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", data: null })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var val = sheet.getRange("A2").getValue();
+    if (!val) {
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", data: null })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var str = String(val).trim();
+    if (str.indexOf("data=") === 0) {
+      str = decodeURIComponent(str.substring(5).replace(/\\+/g, " "));
+    }
+
+    var parsedData = null;
+    try {
+      parsedData = JSON.parse(str);
+    } catch(err) {
+      parsedData = str;
+    }
+
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
       updatedAt: sheet.getRange("B2").getValue(),
-      data: responseData
+      data: parsedData
     })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({
@@ -860,44 +886,48 @@ function doGet(e) {
 function doPost(e) {
   try {
     var rawData = "";
-    if (e.postData && e.postData.contents) {
-      try {
-        var parsed = JSON.parse(e.postData.contents);
-        rawData = parsed.data ? (typeof parsed.data === 'string' ? parsed.data : JSON.stringify(parsed.data)) : e.postData.contents;
-      } catch(err) {
-        rawData = e.postData.contents;
-      }
-    } else if (e.parameter && e.parameter.data) {
+    
+    if (e && e.parameter && e.parameter.data) {
       rawData = e.parameter.data;
+    } else if (e && e.postData && e.postData.contents) {
+      var body = e.postData.contents;
+      if (body.indexOf("data=") === 0) {
+        rawData = decodeURIComponent(body.substring(5).replace(/\\+/g, " "));
+      } else {
+        try {
+          var p = JSON.parse(body);
+          rawData = p.data ? (typeof p.data === 'string' ? p.data : JSON.stringify(p.data)) : body;
+        } catch(err) {
+          rawData = body;
+        }
+      }
     }
 
-    if (rawData) {
-      var sheet = getOrCreateSheet();
-      sheet.getRange("A2").setValue(rawData);
-      sheet.getRange("B2").setValue(new Date().toISOString());
-      return ContentService.createTextOutput(JSON.stringify({
-        status: "success",
-        message: "Data tersimpan"
-      })).setMimeType(ContentService.MimeType.JSON);
+    if (!rawData || String(rawData).trim() === "") {
+      return ContentService.createTextOutput(JSON.stringify({ status: "empty" })).setMimeType(ContentService.MimeType.JSON);
     }
-    return ContentService.createTextOutput(JSON.stringify({ status: "empty" })).setMimeType(ContentService.MimeType.JSON);
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("AppDatabase");
+    if (!sheet) {
+      sheet = ss.insertSheet("AppDatabase");
+      sheet.getRange("A1:B1").setValues([["Data_JSON", "Terakhir_Diperbarui"]]);
+      sheet.getRange("A1:B1").setFontWeight("bold");
+    }
+
+    sheet.getRange("A2").setValue(rawData);
+    sheet.getRange("B2").setValue(new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }));
+
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success",
+      message: "Data berhasil disimpan"
+    })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({
       status: "error",
       message: err.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
-}
-
-function getOrCreateSheet() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("AppDatabase");
-  if (!sheet) {
-    sheet = ss.insertSheet("AppDatabase");
-    sheet.getRange("A1:B1").setValues([["Data_JSON", "Terakhir_Diperbarui"]]);
-    sheet.getRange("A1:B1").setFontWeight("bold");
-  }
-  return sheet;
 }`;
 
   const handleCopyScript = () => {

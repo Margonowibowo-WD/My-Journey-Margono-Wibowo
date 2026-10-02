@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { AppStateData, ScheduledTask, DailyTask, DayReflection } from './types';
 import { getInitialAppState, formatDateKey, getOffsetDateString } from './utils/initialData';
@@ -25,7 +25,7 @@ import {
   BackupModal
 } from './components/Modals';
 
-const DEFAULT_GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbzULMF2OiGe_xMXW_VpUL1anZs4B9Te9Shcjz3vVW_u1w7y3I_tQN6Cp1qi9O56nEau/exec";
+export const DEFAULT_GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxFYZhYHkqkajwjE2AVBiX5PihnaETsksBWPxIXblBA7hG1SG8kb45eBjz7Bx6CVQly/exec";
 
 // Mendeteksi waktu istirahat Pak Margono (18:00 - 06:00) vs waktu produktif kerja (06:00 - 18:00)
 export function isMargonoRestTime(): boolean {
@@ -35,7 +35,13 @@ export function isMargonoRestTime(): boolean {
 
 export default function App() {
   const [googleSheetUrl, setGoogleSheetUrl] = useState<string>(() => {
-    return localStorage.getItem('myjourney_google_sheet_url') || DEFAULT_GOOGLE_SHEET_URL;
+    const saved = localStorage.getItem('myjourney_google_sheet_url');
+    // Jika belum ada atau masih URL lama, otomatis gunakan URL baru Pak Margono
+    if (!saved || saved.includes('AKfycbzULMF2OiGe_xMXW_VpUL1anZs4B9Te9Shcjz3vVW_u1w7y3I_tQN6Cp1qi9O56nEau')) {
+      localStorage.setItem('myjourney_google_sheet_url', DEFAULT_GOOGLE_SHEET_URL);
+      return DEFAULT_GOOGLE_SHEET_URL;
+    }
+    return saved;
   });
 
   const [appState, setAppState] = useState<AppStateData>(() => {
@@ -150,47 +156,94 @@ export default function App() {
     loadHolidays();
   }, [currentViewYear]);
 
-  // Muat data terbaru dari Google Sheet saat aplikasi dibuka
-  useEffect(() => {
-    if (!googleSheetUrl) return;
-    const fetchCloudData = async () => {
-      try {
-        setCloudStatus('syncing');
-        const res = await fetch(`${googleSheetUrl}?action=read&t=${Date.now()}`);
-        if (!res.ok) throw new Error('Fetch status error');
-        const json = await res.json();
-        if (json && json.status === 'success' && json.data) {
-          const cloudData = typeof json.data === 'string' ? JSON.parse(json.data) : json.data;
-          if (cloudData && typeof cloudData === 'object') {
-            setAppState(prev => {
-              const initial = getInitialAppState();
-              const merged: AppStateData = {
-                ...initial,
-                ...prev,
-                ...cloudData,
-                scheduledTasks: Array.isArray(cloudData.scheduledTasks) ? cloudData.scheduledTasks : (Array.isArray(prev.scheduledTasks) ? prev.scheduledTasks : initial.scheduledTasks),
-                dailyTasks: Array.isArray(cloudData.dailyTasks) ? cloudData.dailyTasks : (Array.isArray(prev.dailyTasks) ? prev.dailyTasks : initial.dailyTasks),
-                habits: Array.isArray(cloudData.habits) ? cloudData.habits : (Array.isArray(prev.habits) ? prev.habits : initial.habits),
-                timeCategories: Array.isArray(cloudData.timeCategories) ? cloudData.timeCategories : (Array.isArray(prev.timeCategories) ? prev.timeCategories : initial.timeCategories),
-                affirmations: Array.isArray(cloudData.affirmations) ? cloudData.affirmations : (Array.isArray(prev.affirmations) ? prev.affirmations : initial.affirmations),
-              };
-              localStorage.setItem('myjourney_margono_db', JSON.stringify(merged));
-              return merged;
-            });
-            setCloudStatus('synced');
-          } else {
-            setCloudStatus('synced');
+  // Referensi untuk mencegah tabrakan saat pengguna sedang aktif mengedit
+  const isEditingRecentlyRef = useRef<number>(0);
+  const isFetchingCloudRef = useRef<boolean>(false);
+
+  // Sinkronisasi otomatis dari Cloud (Google Sheet)
+  const fetchCloudData = useCallback(async (isSilent = true) => {
+    if (!googleSheetUrl || isFetchingCloudRef.current) return;
+    // Jangan overwrite jika pengguna baru saja mengetik/mengubah data kurang dari 3.5 detik lalu
+    if (Date.now() - isEditingRecentlyRef.current < 3500) return;
+
+    isFetchingCloudRef.current = true;
+    try {
+      if (!isSilent) setCloudStatus('syncing');
+      const res = await fetch(`${googleSheetUrl}?action=read&t=${Date.now()}`);
+      if (!res.ok) throw new Error('Fetch status error');
+      const json = await res.json();
+      if (json && json.status === 'success' && json.data) {
+        const cloudData = typeof json.data === 'string' ? JSON.parse(json.data) : json.data;
+        if (cloudData && typeof cloudData === 'object') {
+          // Cek kembali jika ada perubahan lokal saat request sedang berjalan
+          if (Date.now() - isEditingRecentlyRef.current < 3500) {
+            isFetchingCloudRef.current = false;
+            return;
           }
-        } else {
+
+          setAppState(prev => {
+            const initial = getInitialAppState();
+            const merged: AppStateData = {
+              ...initial,
+              ...prev,
+              ...cloudData,
+              scheduledTasks: Array.isArray(cloudData.scheduledTasks) ? cloudData.scheduledTasks : (Array.isArray(prev.scheduledTasks) ? prev.scheduledTasks : initial.scheduledTasks),
+              dailyTasks: Array.isArray(cloudData.dailyTasks) ? cloudData.dailyTasks : (Array.isArray(prev.dailyTasks) ? prev.dailyTasks : initial.dailyTasks),
+              habits: Array.isArray(cloudData.habits) ? cloudData.habits : (Array.isArray(prev.habits) ? prev.habits : initial.habits),
+              timeCategories: Array.isArray(cloudData.timeCategories) ? cloudData.timeCategories : (Array.isArray(prev.timeCategories) ? prev.timeCategories : initial.timeCategories),
+              affirmations: Array.isArray(cloudData.affirmations) ? cloudData.affirmations : (Array.isArray(prev.affirmations) ? prev.affirmations : initial.affirmations),
+            };
+            localStorage.setItem('myjourney_margono_db', JSON.stringify(merged));
+            return merged;
+          });
           setCloudStatus('synced');
+          if (!isSilent) {
+            showToast('☁️ Data otomatis tersinkron dari Cloud!', 'success');
+          }
         }
-      } catch {
-        // Jika offline atau belum dideploy, tetap gunakan data local
+      } else {
         setCloudStatus('synced');
       }
-    };
-    fetchCloudData();
+    } catch {
+      // Tetap gunakan data lokal saat offline tanpa mengganggu pengalaman pengguna
+      setCloudStatus('synced');
+    } finally {
+      isFetchingCloudRef.current = false;
+    }
   }, [googleSheetUrl]);
+
+  // 1. Tarik data terbaru saat aplikasi dibuka
+  useEffect(() => {
+    fetchCloudData(true);
+  }, [fetchCloudData]);
+
+  // 2. Tarik data otomatis saat pengguna membuka/berpindah tab di HP atau Laptop
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchCloudData(true);
+      }
+    };
+    const handleFocus = () => {
+      fetchCloudData(true);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    // Polling latar belakang berkala setiap 15 detik agar HP & Laptop selalu sama persis
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchCloudData(true);
+      }
+    }, 15000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
+    };
+  }, [fetchCloudData]);
 
   // Toast helper
   const showToast = (message: string, type: 'success' | 'warning' | 'info' = 'info') => {
@@ -205,6 +258,7 @@ export default function App() {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const saveState = (newState: AppStateData) => {
     setAppState(newState);
+    isEditingRecentlyRef.current = Date.now();
     localStorage.setItem('myjourney_margono_db', JSON.stringify(newState));
 
     if (!googleSheetUrl) {
@@ -218,21 +272,17 @@ export default function App() {
     saveTimeoutRef.current = setTimeout(async () => {
       try {
         const payload = new URLSearchParams({ data: JSON.stringify(newState) });
-        if (navigator.sendBeacon) {
-          navigator.sendBeacon(googleSheetUrl, payload);
-        } else {
-          await fetch(googleSheetUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: payload
-          });
-        }
+        await fetch(googleSheetUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: payload
+        });
         setCloudStatus('synced');
       } catch {
         setCloudStatus('error');
       }
-    }, 600);
+    }, 500);
   };
 
   // User interactions: beralih tema (Otomatis Jadwal Istirahat -> Manual Terang -> Manual Gelap)
@@ -623,60 +673,66 @@ export default function App() {
     reader.readAsText(file);
   };
 
-  const handleUpdateSheetUrl = (newUrl: string) => {
-    setGoogleSheetUrl(newUrl);
-    localStorage.setItem('myjourney_google_sheet_url', newUrl);
-    showToast('URL Google Apps Script berhasil diperbarui!', 'success');
-  };
-
-  const handlePullFromCloud = async () => {
-    if (!googleSheetUrl) {
-      showToast('URL Google Apps Script belum diatur.', 'warning');
+  const handleUpdateSheetUrl = async (newUrl: string) => {
+    const cleanUrl = newUrl.trim();
+    if (!cleanUrl) {
+      showToast('URL Google Apps Script tidak boleh kosong.', 'warning');
       return;
     }
+    setGoogleSheetUrl(cleanUrl);
+    localStorage.setItem('myjourney_google_sheet_url', cleanUrl);
     setCloudStatus('syncing');
-    try {
-      const res = await fetch(`${googleSheetUrl}?action=read&t=${Date.now()}`);
-      if (!res.ok) throw new Error('Network error');
-      const json = await res.json();
-      if (json && json.status === 'success' && json.data) {
-        const cloudData = typeof json.data === 'string' ? JSON.parse(json.data) : json.data;
-        const merged = { ...appState, ...cloudData };
-        setAppState(merged);
-        localStorage.setItem('myjourney_margono_db', JSON.stringify(merged));
-        setCloudStatus('synced');
-        showToast('☁️ Data terbaru berhasil ditarik dari Google Sheet!', 'success');
-        triggerConfetti(canvasRef.current);
-      } else {
-        showToast('Google Sheet belum memiliki data tersimpan.', 'info');
-        setCloudStatus('synced');
-      }
-    } catch {
-      setCloudStatus('error');
-      showToast('Gagal menarik data dari Google Sheet. Pastikan izin Web App diatur "Anyone".', 'warning');
-    }
-  };
+    showToast('Menyimpan URL & menautkan data ke Google Sheet...', 'info');
 
-  const handlePushToCloud = async () => {
-    if (!googleSheetUrl) {
-      showToast('URL Google Apps Script belum diatur.', 'warning');
-      return;
-    }
-    setCloudStatus('syncing');
     try {
+      // Kirim data aplikasi saat ini ke sheet baru agar langsung terisi
       const payload = new URLSearchParams({ data: JSON.stringify(appState) });
-      await fetch(googleSheetUrl, {
+      await fetch(cleanUrl, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: payload
       });
+
+      setTimeout(() => {
+        fetchCloudData(true);
+      }, 500);
+
       setCloudStatus('synced');
-      showToast('☁️ Data saat ini berhasil dikirim ke Google Sheet!', 'success');
+      showToast('✅ Berhasil tertaut ke Google Sheet baru!', 'success');
+      triggerConfetti(canvasRef.current);
     } catch {
       setCloudStatus('error');
-      showToast('Gagal mengirim data ke Google Sheet.', 'warning');
+      showToast('Gagal menautkan. Pastikan izin Web App diatur "Anyone".', 'warning');
     }
+  };
+
+  const handleResetToDefaultSheetUrl = async () => {
+    setGoogleSheetUrl(DEFAULT_GOOGLE_SHEET_URL);
+    localStorage.setItem('myjourney_google_sheet_url', DEFAULT_GOOGLE_SHEET_URL);
+    setCloudStatus('syncing');
+    showToast('Mengembalikan ke Google Sheet Bawaan Margono...', 'info');
+
+    try {
+      const payload = new URLSearchParams({ data: JSON.stringify(appState) });
+      await fetch(DEFAULT_GOOGLE_SHEET_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: payload
+      });
+      setTimeout(() => {
+        fetchCloudData(true);
+      }, 500);
+      setCloudStatus('synced');
+      showToast('✅ Menggunakan Google Sheet Bawaan Margono!', 'success');
+    } catch {
+      setCloudStatus('synced');
+    }
+  };
+
+  const handleManualSyncNow = () => {
+    fetchCloudData(false);
   };
 
   return (
@@ -965,8 +1021,8 @@ export default function App() {
         sheetUrl={googleSheetUrl}
         cloudStatus={cloudStatus}
         onUpdateSheetUrl={handleUpdateSheetUrl}
-        onPullFromCloud={handlePullFromCloud}
-        onPushToCloud={handlePushToCloud}
+        onResetToDefaultUrl={handleResetToDefaultSheetUrl}
+        onSyncNow={handleManualSyncNow}
         onClose={() => setIsBackupOpen(false)}
         onExport={handleExportData}
         onImport={handleImportData}

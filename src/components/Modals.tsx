@@ -811,8 +811,8 @@ export const BackupModal: React.FC<{
   sheetUrl: string;
   cloudStatus: 'synced' | 'syncing' | 'error' | 'offline';
   onUpdateSheetUrl: (url: string) => void;
-  onPullFromCloud: () => void;
-  onPushToCloud: () => void;
+  onResetToDefaultUrl: () => void;
+  onSyncNow: () => void;
   onClose: () => void;
   onExport: () => void;
   onImport: (file: File) => void;
@@ -821,8 +821,8 @@ export const BackupModal: React.FC<{
   sheetUrl,
   cloudStatus,
   onUpdateSheetUrl,
-  onPullFromCloud,
-  onPushToCloud,
+  onResetToDefaultUrl,
+  onSyncNow,
   onClose,
   onExport,
   onImport
@@ -920,7 +920,7 @@ function getOrCreateSheet() {
                 Sinkronisasi Cloud & Cadangan Data
               </h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Akses & sinkron otomatis antar HP & Laptop via Google Sheet
+                Tersinkron otomatis 24/7 di HP & Laptop via Google Sheet
               </p>
             </div>
           </div>
@@ -930,12 +930,12 @@ function getOrCreateSheet() {
         </div>
 
         <div className="space-y-4 text-xs font-body text-slate-600 dark:text-slate-300">
-          {/* Status Koneksi Cloud */}
-          <div className="p-3.5 bg-gradient-to-r from-sky-50 to-indigo-50 dark:from-slate-800/80 dark:to-slate-800/40 rounded-2xl border border-sky-200 dark:border-slate-700 space-y-2">
+          {/* Status & Banner Otomatis */}
+          <div className="p-3.5 bg-gradient-to-r from-emerald-50 via-sky-50 to-indigo-50 dark:from-slate-800/90 dark:via-slate-800/70 dark:to-slate-800/50 rounded-2xl border border-emerald-200 dark:border-slate-700 space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <span className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                 <Cloud className="w-4 h-4 text-sky-500" />
-                Status Cloud Google Sheet:
+                Status Sinkronisasi Otomatis:
               </span>
               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold flex items-center gap-1 ${
                 cloudStatus === 'synced'
@@ -947,46 +947,56 @@ function getOrCreateSheet() {
                 <span className={`w-1.5 h-1.5 rounded-full ${
                   cloudStatus === 'synced' ? 'bg-emerald-500' : cloudStatus === 'syncing' ? 'bg-amber-500' : 'bg-rose-500'
                 }`} />
-                {cloudStatus === 'synced' ? 'Tersinkron' : cloudStatus === 'syncing' ? 'Menyinkronkan...' : 'Offline / Error'}
+                {cloudStatus === 'synced' ? 'Aktif & Tersinkron' : cloudStatus === 'syncing' ? 'Menyinkronkan...' : 'Offline / Periksa URL'}
               </span>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                URL Google Apps Script Web App (/exec):
-              </label>
-              <div className="flex gap-2">
+            <p className="text-[11px] text-emerald-800 dark:text-emerald-300 bg-emerald-100/60 dark:bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-200/80 dark:border-emerald-800/40 leading-relaxed font-semibold">
+              ✨ <strong>100% Otomatis:</strong> Setiap centang tugas, habit, catatan waktu, atau refleksi yang Anda ubah di HP maupun Laptop langsung tersimpan ke Google Sheet secara real-time. Anda tidak perlu menarik data manual lagi!
+            </p>
+
+            {/* Input URL Google Sheet */}
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                  URL Google Apps Script Web App (/exec):
+                </label>
+                <button
+                  type="button"
+                  onClick={onResetToDefaultUrl}
+                  className="text-[10px] text-sky-600 dark:text-sky-400 font-semibold hover:underline cursor-pointer"
+                >
+                  Gunakan URL Bawaan Margono
+                </button>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
                   value={currentUrl}
                   onChange={e => setCurrentUrl(e.target.value)}
                   placeholder="https://script.google.com/macros/s/.../exec"
-                  className="w-full p-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-sky-500 font-mono"
+                  className="w-full p-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500 font-mono"
                 />
                 <button
+                  type="button"
                   onClick={() => onUpdateSheetUrl(currentUrl.trim())}
-                  className="px-3 py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs shrink-0 cursor-pointer shadow-sm active:scale-95"
+                  className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-xl text-xs shrink-0 cursor-pointer shadow-md transition-all flex items-center justify-center gap-1.5"
                 >
-                  Simpan URL
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Simpan & Tautkan</span>
                 </button>
               </div>
             </div>
 
-            {/* Tombol Aksi Cloud Langsung */}
-            <div className="grid grid-cols-2 gap-2 pt-1">
+            {/* Tombol Sinkron Cepat */}
+            <div className="pt-1">
               <button
-                onClick={onPullFromCloud}
-                className="py-2 px-3 rounded-xl bg-white dark:bg-slate-900 hover:bg-sky-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
+                type="button"
+                onClick={onSyncNow}
+                className="w-full py-2 px-3 rounded-xl bg-white dark:bg-slate-900 hover:bg-sky-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
               >
                 <CloudDownload className="w-3.5 h-3.5 text-sky-500" />
-                <span>Tarik dari Cloud (Pull)</span>
-              </button>
-              <button
-                onClick={onPushToCloud}
-                className="py-2 px-3 rounded-xl bg-white dark:bg-slate-900 hover:bg-emerald-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
-              >
-                <CloudUpload className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Kirim ke Cloud (Push)</span>
+                <span>Tes & Segarkan Sinkronisasi Sekarang</span>
               </button>
             </div>
           </div>
@@ -996,9 +1006,10 @@ function getOrCreateSheet() {
             <div className="flex items-center justify-between">
               <span className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
                 <Code className="w-4 h-4 text-amber-500" />
-                Script Backend Google Sheet (Apps Script):
+                Script Backend Google Sheet (Jika Ingin Bikin Sheet Baru):
               </span>
               <button
+                type="button"
                 onClick={() => setShowScriptGuide(!showScriptGuide)}
                 className="text-[10px] text-sky-600 dark:text-sky-400 font-semibold hover:underline cursor-pointer"
               >
@@ -1007,10 +1018,11 @@ function getOrCreateSheet() {
             </div>
             
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Salin kode ini dan pasang pada Google Sheets Anda di menu <em>Ekstensi &rarr; Apps Script</em>.
+              Jika di masa depan Anda ingin mengganti spreadsheet baru, cukup salin kode ini dan pasang di menu <em>Ekstensi &rarr; Apps Script</em> pada Google Sheet baru Anda.
             </p>
 
             <button
+              type="button"
               onClick={handleCopyScript}
               className="w-full py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-sm transition-all"
             >
@@ -1028,14 +1040,15 @@ function getOrCreateSheet() {
           {/* Cadangan Berkas Offline (.json) */}
           <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2.5">
             <p className="font-bold text-slate-800 dark:text-slate-100">
-              Cadangan Berkas Lokal (.json):
+              Cadangan Berkas Lokal Manual (.json):
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
+                type="button"
                 onClick={onExport}
                 className="w-full py-2 rounded-xl bg-slate-800 dark:bg-sky-600 hover:bg-slate-900 dark:hover:bg-sky-700 text-white font-bold text-xs transition-all cursor-pointer text-center"
               >
-                Unduh Data (.json)
+                Unduh Cadangan (.json)
               </button>
               <div className="space-y-1">
                 <input
@@ -1046,6 +1059,7 @@ function getOrCreateSheet() {
                 />
                 {selectedFile && (
                   <button
+                    type="button"
                     onClick={() => onImport(selectedFile)}
                     className="w-full py-1.5 rounded-xl border border-emerald-500 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-700 font-bold text-[11px] transition-all cursor-pointer"
                   >

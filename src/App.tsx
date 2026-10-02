@@ -39,16 +39,29 @@ export default function App() {
   });
 
   const [appState, setAppState] = useState<AppStateData>(() => {
+    const initial = getInitialAppState();
     const local = localStorage.getItem('myjourney_margono_db');
     if (local) {
       try {
         const parsed = JSON.parse(local);
-        return { ...getInitialAppState(), ...parsed };
+        if (parsed && typeof parsed === 'object') {
+          return {
+            ...initial,
+            ...parsed,
+            scheduledTasks: Array.isArray(parsed.scheduledTasks) ? parsed.scheduledTasks : initial.scheduledTasks,
+            dailyTasks: Array.isArray(parsed.dailyTasks) ? parsed.dailyTasks : initial.dailyTasks,
+            habits: Array.isArray(parsed.habits) ? parsed.habits : initial.habits,
+            timeCategories: Array.isArray(parsed.timeCategories) ? parsed.timeCategories : initial.timeCategories,
+            affirmations: Array.isArray(parsed.affirmations) ? parsed.affirmations : initial.affirmations,
+            timeTracking: parsed.timeTracking && typeof parsed.timeTracking === 'object' ? parsed.timeTracking : initial.timeTracking,
+            reflections: parsed.reflections && typeof parsed.reflections === 'object' ? parsed.reflections : initial.reflections,
+          };
+        }
       } catch {
-        return getInitialAppState();
+        return initial;
       }
     }
-    return getInitialAppState();
+    return initial;
   });
 
   const [themeMode, setThemeMode] = useState<'auto' | 'light' | 'dark'>(() => {
@@ -148,12 +161,26 @@ export default function App() {
         const json = await res.json();
         if (json && json.status === 'success' && json.data) {
           const cloudData = typeof json.data === 'string' ? JSON.parse(json.data) : json.data;
-          setAppState(prev => {
-            const merged = { ...prev, ...cloudData };
-            localStorage.setItem('myjourney_margono_db', JSON.stringify(merged));
-            return merged;
-          });
-          setCloudStatus('synced');
+          if (cloudData && typeof cloudData === 'object') {
+            setAppState(prev => {
+              const initial = getInitialAppState();
+              const merged: AppStateData = {
+                ...initial,
+                ...prev,
+                ...cloudData,
+                scheduledTasks: Array.isArray(cloudData.scheduledTasks) ? cloudData.scheduledTasks : (Array.isArray(prev.scheduledTasks) ? prev.scheduledTasks : initial.scheduledTasks),
+                dailyTasks: Array.isArray(cloudData.dailyTasks) ? cloudData.dailyTasks : (Array.isArray(prev.dailyTasks) ? prev.dailyTasks : initial.dailyTasks),
+                habits: Array.isArray(cloudData.habits) ? cloudData.habits : (Array.isArray(prev.habits) ? prev.habits : initial.habits),
+                timeCategories: Array.isArray(cloudData.timeCategories) ? cloudData.timeCategories : (Array.isArray(prev.timeCategories) ? prev.timeCategories : initial.timeCategories),
+                affirmations: Array.isArray(cloudData.affirmations) ? cloudData.affirmations : (Array.isArray(prev.affirmations) ? prev.affirmations : initial.affirmations),
+              };
+              localStorage.setItem('myjourney_margono_db', JSON.stringify(merged));
+              return merged;
+            });
+            setCloudStatus('synced');
+          } else {
+            setCloudStatus('synced');
+          }
         } else {
           setCloudStatus('synced');
         }

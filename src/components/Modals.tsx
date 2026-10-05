@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Trophy, Copy, Check, FileText, Cloud, CloudUpload, CloudDownload, RefreshCw, Code } from 'lucide-react';
-import { ScheduledTask, DailyTask } from '../types';
+import { X, Sparkles, Trophy, Copy, Check, FileText, Cloud, CloudUpload, CloudDownload, RefreshCw, Code, AlertTriangle } from 'lucide-react';
+import { ScheduledTask, DailyTask, Habit, TimeCategory } from '../types';
 
 // 1. Personal Notes Modal (Besar, Lega, dan Nyaman Dibaca)
 export const PersonalNotesModal: React.FC<{
@@ -302,14 +302,51 @@ export const DailyTaskModal: React.FC<{
   );
 };
 
-// 4. Add Habit Modal
+// 4. Add / Edit Habit Modal
 export const HabitModal: React.FC<{
   isOpen: boolean;
+  habitToEdit?: Habit | null;
   onClose: () => void;
-  onSave: (name: string, color: string) => void;
-}> = ({ isOpen, onClose, onSave }) => {
+  onSave: (name: string, color: string, id?: string) => void;
+}> = ({ isOpen, habitToEdit, onClose, onSave }) => {
   const [name, setName] = useState('');
-  const [color, setColor] = useState('emerald');
+  const [color, setColor] = useState('#10b981');
+
+  const presets = [
+    { name: 'Hijau Zamrud', color: '#10b981' },
+    { name: 'Biru Samudra', color: '#0284c7' },
+    { name: 'Biru Indigo', color: '#6366f1' },
+    { name: 'Ungu Cerah', color: '#8b5cf6' },
+    { name: 'Merah Mawar', color: '#e11d48' },
+    { name: 'Merah Muda', color: '#ec4899' },
+    { name: 'Kuning Emas', color: '#f59e0b' },
+    { name: 'Oranye Senja', color: '#f97316' },
+    { name: 'Teal Mint', color: '#14b8a6' },
+    { name: 'Hijau Muda', color: '#84cc16' },
+    { name: 'Cyan Langit', color: '#06b6d4' },
+    { name: 'Abu Modern', color: '#64748b' }
+  ];
+
+  const normalizeColor = (c: string) => {
+    const legacyMap: Record<string, string> = {
+      emerald: '#10b981',
+      indigo: '#6366f1',
+      amber: '#f59e0b',
+      rose: '#e11d48',
+      purple: '#8b5cf6'
+    };
+    return legacyMap[c] || c || '#10b981';
+  };
+
+  useEffect(() => {
+    if (habitToEdit) {
+      setName(habitToEdit.name);
+      setColor(normalizeColor(habitToEdit.color));
+    } else {
+      setName('');
+      setColor('#10b981');
+    }
+  }, [habitToEdit, isOpen]);
 
   if (!isOpen) return null;
 
@@ -317,12 +354,17 @@ export const HabitModal: React.FC<{
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-pop-check">
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white">Tambah Kebiasaan Baru</h3>
+          <div className="flex items-center gap-2">
+            <span className="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: color }} />
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              {habitToEdit ? 'Edit Kebiasaan Baik' : 'Tambah Kebiasaan Baru'}
+            </h3>
+          </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="space-y-3 text-xs">
+        <div className="space-y-3.5 text-xs">
           <div>
             <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Nama Kebiasaan Baik:</label>
             <input
@@ -333,32 +375,75 @@ export const HabitModal: React.FC<{
               placeholder="Contoh: Membaca Buku 20 Halaman, Berjalan Santai..."
             />
           </div>
-          <div>
-            <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Pilihan Warna Kotak:</label>
-            <select
-              value={color}
-              onChange={e => setColor(e.target.value)}
-              className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+
+          {/* Pratinjau Tampilan */}
+          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0 pr-2">
+              <span
+                className="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs ring-2 ring-white dark:ring-slate-900"
+                style={{ backgroundColor: color }}
+              />
+              <span className="font-bold text-slate-800 dark:text-slate-100 truncate text-xs">
+                {name.trim() || 'Contoh Nama Kebiasaan'}
+              </span>
+            </div>
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-black shadow-xs shrink-0 select-none"
+              style={{ backgroundColor: color }}
             >
-              <option value="emerald">Hijau Zamrud (Emerald)</option>
-              <option value="indigo">Biru Indigo</option>
-              <option value="amber">Kuning Emas (Amber)</option>
-              <option value="rose">Merah Mawar (Rose)</option>
-              <option value="purple">Ungu (Purple)</option>
-            </select>
+              ✓
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="font-bold text-slate-700 dark:text-slate-300">Pilih Warna Kotak Kebiasaan:</label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="color"
+                  value={color}
+                  onChange={e => setColor(e.target.value)}
+                  className="w-7 h-7 rounded-lg cursor-pointer border border-slate-200 dark:border-slate-700 p-0.5 bg-white dark:bg-slate-800"
+                  title="Pilih Warna Kustom"
+                />
+                <span className="text-slate-500 font-mono text-[11px]">{color}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-6 gap-2 pt-1">
+              {presets.map(item => {
+                const isSelected = color.toLowerCase() === item.color.toLowerCase();
+                return (
+                  <button
+                    key={item.color}
+                    type="button"
+                    onClick={() => setColor(item.color)}
+                    title={item.name}
+                    className={`h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer shadow-xs ${
+                      isSelected
+                        ? 'ring-2 ring-offset-2 ring-slate-800 dark:ring-white scale-110 shadow-md z-10'
+                        : 'hover:scale-105 opacity-85 hover:opacity-100'
+                    }`}
+                    style={{ backgroundColor: item.color }}
+                  >
+                    {isSelected && <span className="text-white text-xs font-black drop-shadow">✓</span>}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
-        <div className="flex items-center justify-end gap-2 pt-2">
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
             Batal
           </button>
           <button
             onClick={() => {
-              if (name.trim()) onSave(name.trim(), color);
+              if (name.trim()) onSave(name.trim(), color, habitToEdit?.id);
             }}
             className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-500/20 active:scale-95 cursor-pointer"
           >
-            Simpan Kebiasaan
+            {habitToEdit ? 'Perbarui Kebiasaan' : 'Simpan Kebiasaan'}
           </button>
         </div>
       </div>
@@ -366,26 +451,53 @@ export const HabitModal: React.FC<{
   );
 };
 
-// 5. Add Custom Time Category Modal
+// 5. Add / Edit Custom Time Category Modal
 export const TimeCategoryModal: React.FC<{
   isOpen: boolean;
+  categoryToEdit?: TimeCategory | null;
   onClose: () => void;
-  onSave: (name: string, emoji: string, color: string) => void;
-}> = ({ isOpen, onClose, onSave }) => {
+  onSave: (name: string, emoji: string, color: string, id?: string) => void;
+}> = ({ isOpen, categoryToEdit, onClose, onSave }) => {
   const [name, setName] = useState('');
   const [emoji, setEmoji] = useState('⏱️');
   const [color, setColor] = useState('#3b82f6');
 
+  useEffect(() => {
+    if (categoryToEdit) {
+      setName(categoryToEdit.name);
+      setEmoji(categoryToEdit.emoji || '⏱️');
+      setColor(categoryToEdit.color || '#3b82f6');
+    } else {
+      setName('');
+      setEmoji('⏱️');
+      setColor('#3b82f6');
+    }
+  }, [categoryToEdit, isOpen]);
+
   if (!isOpen) return null;
 
-  const presets = ['#6366f1', '#0284c7', '#10b981', '#f59e0b', '#e11d48', '#8b5cf6', '#ec4899', '#14b8a6', '#64748b'];
+  const presets = [
+    { name: 'Biru Indigo', color: '#6366f1' },
+    { name: 'Biru Samudra', color: '#0284c7' },
+    { name: 'Hijau Zamrud', color: '#10b981' },
+    { name: 'Kuning Emas', color: '#f59e0b' },
+    { name: 'Merah Mawar', color: '#e11d48' },
+    { name: 'Ungu Cerah', color: '#8b5cf6' },
+    { name: 'Merah Muda', color: '#ec4899' },
+    { name: 'Teal Mint', color: '#14b8a6' },
+    { name: 'Oranye Senja', color: '#f97316' },
+    { name: 'Hijau Muda', color: '#84cc16' },
+    { name: 'Cyan Langit', color: '#06b6d4' },
+    { name: 'Abu Modern', color: '#64748b' }
+  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-pop-check">
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
           <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <span>🎨</span> Buat Indikator Waktu Kustom
+            <span className="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: color }} />
+            <span>{categoryToEdit ? 'Edit Indikator Waktu' : 'Buat Indikator Waktu Kustom'}</span>
           </h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg cursor-pointer">
             <X className="w-5 h-5" />
@@ -428,16 +540,26 @@ export const TimeCategoryModal: React.FC<{
           </div>
           <div>
             <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5">Preset Warna:</label>
-            <div className="flex items-center gap-2 flex-wrap">
-              {presets.map(c => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setColor(c)}
-                  className="w-6 h-6 rounded-lg ring-1 ring-white/50 cursor-pointer shadow-xs transition-transform hover:scale-110"
-                  style={{ backgroundColor: c }}
-                />
-              ))}
+            <div className="grid grid-cols-6 gap-2">
+              {presets.map(item => {
+                const isSelected = color.toLowerCase() === item.color.toLowerCase();
+                return (
+                  <button
+                    key={item.color}
+                    type="button"
+                    onClick={() => setColor(item.color)}
+                    title={item.name}
+                    className={`h-7 rounded-xl flex items-center justify-center transition-all cursor-pointer shadow-xs ${
+                      isSelected
+                        ? 'ring-2 ring-offset-2 ring-slate-800 dark:ring-white scale-110 shadow-md z-10'
+                        : 'hover:scale-105 opacity-85 hover:opacity-100'
+                    }`}
+                    style={{ backgroundColor: item.color }}
+                  >
+                    {isSelected && <span className="text-white text-[11px] font-black drop-shadow">✓</span>}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -447,11 +569,11 @@ export const TimeCategoryModal: React.FC<{
           </button>
           <button
             onClick={() => {
-              if (name.trim()) onSave(name.trim(), emoji, color);
+              if (name.trim()) onSave(name.trim(), emoji, color, categoryToEdit?.id);
             }}
             className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-500/20 active:scale-95 cursor-pointer"
           >
-            Simpan Indikator
+            {categoryToEdit ? 'Perbarui Indikator' : 'Simpan Indikator'}
           </button>
         </div>
       </div>
@@ -890,6 +1012,78 @@ export const BackupModal: React.FC<{
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 12. Confirm Delete Modal (Mencegah Hapus Tanpa Sengaja)
+export interface ConfirmDeleteModalProps {
+  isOpen: boolean;
+  title?: string;
+  message?: string;
+  itemName?: string;
+  confirmButtonText?: string;
+  onConfirm: () => void;
+  onClose: () => void;
+}
+
+export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
+  isOpen,
+  title = "Konfirmasi Hapus",
+  message = "Apakah Anda yakin ingin menghapus data ini?",
+  itemName,
+  confirmButtonText = "Ya, Hapus Sekarang",
+  onConfirm,
+  onClose
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm animate-pop-check">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 max-w-sm w-full shadow-2xl border border-rose-200 dark:border-rose-900/60 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 flex items-center justify-center text-2xl shrink-0 shadow-xs border border-rose-200 dark:border-rose-800">
+            <AlertTriangle className="w-6 h-6 stroke-[2.5]" />
+          </div>
+          <div>
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white leading-tight">
+              {title}
+            </h3>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-body mt-0.5">
+              Tindakan ini tidak dapat dibatalkan
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-2 text-xs font-body text-slate-600 dark:text-slate-300">
+          <p className="leading-relaxed">{message}</p>
+          {itemName && (
+            <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 font-bold text-slate-800 dark:text-slate-200 truncate">
+              "{itemName}"
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer text-center"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onConfirm();
+              onClose();
+            }}
+            className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-extrabold text-xs shadow-md shadow-rose-500/20 transition-all cursor-pointer text-center"
+          >
+            {confirmButtonText}
+          </button>
         </div>
       </div>
     </div>

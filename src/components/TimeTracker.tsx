@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Trash2, Clock } from 'lucide-react';
+import { Plus, Edit2, Trash2, Clock } from 'lucide-react';
 import { TimeCategory } from '../types';
 import { formatDateKey } from '../utils/initialData';
 
@@ -12,6 +12,7 @@ interface TimeTrackerProps {
   activeCategoryId: string;
   timeTracking: Record<string, Record<number, string>>;
   onSelectCategory: (id: string) => void;
+  onEditCategory: (cat: TimeCategory) => void;
   onDeleteCategory: (id: string) => void;
   onTogglePixel: (dateStr: string, hour: number) => void;
   onResetMonth: () => void;
@@ -28,6 +29,7 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({
   activeCategoryId,
   timeTracking,
   onSelectCategory,
+  onEditCategory,
   onDeleteCategory,
   onTogglePixel,
   onResetMonth,
@@ -121,18 +123,17 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({
           {timeCategories.map(cat => {
             const isSelected = cat.id === activeCategoryId;
             return (
-              <button
+              <div
                 key={cat.id}
-                type="button"
                 onClick={() => onSelectCategory(cat.id)}
-                className={`group relative px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer bg-white dark:bg-slate-800 shadow-xs ${
-                  isSelected ? 'scale-105 shadow-md' : 'border border-slate-200 dark:border-slate-700'
+                className={`group relative px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer bg-white dark:bg-slate-800 shadow-xs ${
+                  isSelected ? 'scale-105 shadow-md' : 'border border-slate-200 dark:border-slate-700 hover:border-slate-300'
                 }`}
                 style={
                   isSelected
                     ? {
                         border: `2px solid ${cat.color}`,
-                        boxShadow: `0 0 12px ${cat.color}77`
+                        boxShadow: `0 0 12px ${cat.color}66`
                       }
                     : undefined
                 }
@@ -145,19 +146,33 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({
                     Kuas Aktif
                   </span>
                 )}
-                {timeCategories.length > 1 && (
-                  <span
+                <div className="flex items-center gap-0.5 ml-1">
+                  <button
+                    type="button"
                     onClick={e => {
                       e.stopPropagation();
-                      onDeleteCategory(cat.id);
+                      onEditCategory(cat);
                     }}
-                    title="Hapus Indikator Ini"
-                    className="ml-1 text-slate-300 hover:text-rose-500 opacity-60 hover:opacity-100 transition-opacity"
+                    title={`Edit Indikator ${cat.name}`}
+                    className="p-1 rounded text-slate-400 hover:text-purple-600 hover:bg-purple-100 dark:hover:bg-purple-950/60 transition-colors cursor-pointer"
                   >
-                    &times;
-                  </span>
-                )}
-              </button>
+                    <Edit2 className="w-3 h-3" />
+                  </button>
+                  {timeCategories.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={e => {
+                        e.stopPropagation();
+                        onDeleteCategory(cat.id);
+                      }}
+                      title={`Hapus Indikator ${cat.name}`}
+                      className="p-1 rounded text-slate-300 hover:text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-950/60 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
             );
           })}
         </div>

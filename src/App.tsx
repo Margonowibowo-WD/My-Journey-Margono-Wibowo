@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { AppStateData, ScheduledTask, DailyTask, DayReflection } from './types';
+import { AppStateData, ScheduledTask, DailyTask, DayReflection, Habit, TimeCategory } from './types';
 import { getInitialAppState, formatDateKey, getOffsetDateString } from './utils/initialData';
 import { playClickSound, playCelebrationSound, playFanfareSound, initAudioContext } from './utils/audio';
 import { triggerConfetti, triggerSuperConfetti } from './utils/confetti';
@@ -22,7 +22,8 @@ import {
   LightboxModal,
   RewardModal,
   CustomAffirmationModal,
-  BackupModal
+  BackupModal,
+  ConfirmDeleteModal
 } from './components/Modals';
 
 // DATABASE GOOGLE SHEET RESMI PAK MARGONO WIBOWO (DITANAM PERMANEN)
@@ -94,12 +95,44 @@ export default function App() {
   const [isDailyModalOpen, setIsDailyModalOpen] = useState(false);
   const [dailyTaskToEdit, setDailyTaskToEdit] = useState<DailyTask | null>(null);
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
+  const [habitToEdit, setHabitToEdit] = useState<Habit | null>(null);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [categoryToEdit, setCategoryToEdit] = useState<TimeCategory | null>(null);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [isImageViewOpen, setIsImageViewOpen] = useState(false);
   const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
   const [isCustomAffirmationOpen, setIsCustomAffirmationOpen] = useState(false);
   const [isBackupOpen, setIsBackupOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    itemName?: string;
+    confirmButtonText?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: 'Konfirmasi Hapus',
+    message: 'Apakah Anda yakin ingin menghapus data ini?',
+    onConfirm: () => {}
+  });
+
+  const requestConfirmDelete = (config: {
+    title?: string;
+    message?: string;
+    itemName?: string;
+    confirmButtonText?: string;
+    onConfirm: () => void;
+  }) => {
+    setDeleteConfirm({
+      isOpen: true,
+      title: config.title || 'Konfirmasi Hapus',
+      message: config.message || 'Apakah Anda yakin ingin menghapus data ini?',
+      itemName: config.itemName,
+      confirmButtonText: config.confirmButtonText || 'Ya, Hapus Sekarang',
+      onConfirm: config.onConfirm
+    });
+  };
 
   // Logika mendeteksi waktu lokal dan peralihan tema otomatis sesuai jam istirahat Pak Margono
   useEffect(() => {
@@ -382,10 +415,19 @@ export default function App() {
   };
 
   const handleDeleteDailyTask = (id: string) => {
-    playClickSound(appState.soundEnabled);
-    const updated = appState.dailyTasks.filter(t => t.id !== id);
-    saveState({ ...appState, dailyTasks: updated });
-    showToast('Agenda harian dihapus.', 'info');
+    const task = appState.dailyTasks.find(t => t.id === id);
+    requestConfirmDelete({
+      title: 'Hapus Agenda Harian?',
+      message: 'Apakah Anda yakin ingin menghapus catatan agenda harian ini?',
+      itemName: task?.title || 'Agenda Harian',
+      confirmButtonText: 'Ya, Hapus Sekarang',
+      onConfirm: () => {
+        playClickSound(appState.soundEnabled);
+        const updated = appState.dailyTasks.filter(t => t.id !== id);
+        saveState({ ...appState, dailyTasks: updated });
+        showToast('Agenda harian berhasil dihapus.', 'info');
+      }
+    });
   };
 
   const handleSaveDailyTask = (
@@ -461,10 +503,19 @@ export default function App() {
   };
 
   const handleDeleteScheduledTask = (id: string) => {
-    playClickSound(appState.soundEnabled);
-    const updated = appState.scheduledTasks.filter(t => t.id !== id);
-    saveState({ ...appState, scheduledTasks: updated });
-    showToast('Catatan terjadwal dihapus.', 'info');
+    const task = appState.scheduledTasks.find(t => t.id === id);
+    requestConfirmDelete({
+      title: 'Hapus Catatan Terjadwal?',
+      message: 'Apakah Anda yakin ingin menghapus catatan tugas terjadwal ini beserta deadline-nya?',
+      itemName: task?.title || 'Catatan Terjadwal',
+      confirmButtonText: 'Ya, Hapus Sekarang',
+      onConfirm: () => {
+        playClickSound(appState.soundEnabled);
+        const updated = appState.scheduledTasks.filter(t => t.id !== id);
+        saveState({ ...appState, scheduledTasks: updated });
+        showToast('Catatan terjadwal telah dihapus.', 'info');
+      }
+    });
   };
 
   // Habits actions
@@ -489,23 +540,39 @@ export default function App() {
       showToast('Minimal harus ada 1 kebiasaan dalam tracker.', 'warning');
       return;
     }
-    playClickSound(appState.soundEnabled);
-    const updated = appState.habits.filter(h => h.id !== habitId);
-    saveState({ ...appState, habits: updated });
-    showToast('Kebiasaan berhasil dihapus.', 'info');
+    const habit = appState.habits.find(h => h.id === habitId);
+    requestConfirmDelete({
+      title: 'Hapus Kebiasaan?',
+      message: 'Apakah Anda yakin ingin menghapus kebiasaan ini beserta seluruh catatan bulanan di matrix?',
+      itemName: habit?.name || 'Kebiasaan',
+      confirmButtonText: 'Ya, Hapus Sekarang',
+      onConfirm: () => {
+        playClickSound(appState.soundEnabled);
+        const updated = appState.habits.filter(h => h.id !== habitId);
+        saveState({ ...appState, habits: updated });
+        showToast('Kebiasaan telah dihapus.', 'info');
+      }
+    });
   };
 
-  const handleSaveHabit = (name: string, color: string) => {
+  const handleSaveHabit = (name: string, color: string, id?: string) => {
     playCelebrationSound(appState.soundEnabled);
-    const newHabit = {
-      id: 'hb-' + Date.now(),
-      name,
-      color,
-      completions: {}
-    };
-    saveState({ ...appState, habits: [...appState.habits, newHabit] });
+    if (id) {
+      const updated = appState.habits.map(h => (h.id === id ? { ...h, name, color } : h));
+      saveState({ ...appState, habits: updated });
+      showToast(`Kebiasaan "${name}" berhasil diperbarui!`, 'success');
+    } else {
+      const newHabit = {
+        id: 'hb-' + Date.now(),
+        name,
+        color,
+        completions: {}
+      };
+      saveState({ ...appState, habits: [...appState.habits, newHabit] });
+      showToast('Kebiasaan baru berhasil ditambahkan!', 'success');
+    }
     setIsHabitModalOpen(false);
-    showToast('Kebiasaan baru berhasil ditambahkan!', 'success');
+    setHabitToEdit(null);
   };
 
   // Time Tracker actions
@@ -532,36 +599,50 @@ export default function App() {
   };
 
   const handleResetMonthTime = () => {
-    const daysInMonth = new Date(currentViewYear, currentViewMonth + 1, 0).getDate();
-    const newTracking = { ...appState.timeTracking };
-    let cleared = 0;
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateStr = `${currentViewYear}-${String(currentViewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      if (newTracking[dateStr]) {
-        delete newTracking[dateStr];
-        cleared++;
+    requestConfirmDelete({
+      title: 'Kosongkan Jam Bulan Ini?',
+      message: 'Apakah Anda yakin ingin mengosongkan seluruh catatan jam 24 jam pada bulan ini?',
+      confirmButtonText: 'Ya, Kosongkan Jam',
+      onConfirm: () => {
+        const daysInMonth = new Date(currentViewYear, currentViewMonth + 1, 0).getDate();
+        const newTracking = { ...appState.timeTracking };
+        let cleared = 0;
+        for (let day = 1; day <= daysInMonth; day++) {
+          const dateStr = `${currentViewYear}-${String(currentViewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          if (newTracking[dateStr]) {
+            delete newTracking[dateStr];
+            cleared++;
+          }
+        }
+        if (cleared > 0) {
+          playClickSound(appState.soundEnabled);
+          saveState({ ...appState, timeTracking: newTracking });
+          showToast('Catatan jam bulan ini berhasil dikosongkan.', 'info');
+        } else {
+          showToast('Belum ada catatan jam di bulan ini.', 'info');
+        }
       }
-    }
-    if (cleared > 0) {
-      playClickSound(appState.soundEnabled);
-      saveState({ ...appState, timeTracking: newTracking });
-      showToast('Catatan jam bulan ini dikosongkan.', 'info');
-    } else {
-      showToast('Belum ada catatan jam di bulan ini.', 'info');
-    }
+    });
   };
 
-  const handleSaveCustomTimeCategory = (name: string, emoji: string, color: string) => {
-    const newId = 'tc-' + Date.now();
-    const newCategory = { id: newId, name, emoji, color };
-    saveState({
-      ...appState,
-      timeCategories: [...appState.timeCategories, newCategory],
-      activeTimeCategoryId: newId
-    });
-    setIsCategoryModalOpen(false);
+  const handleSaveCustomTimeCategory = (name: string, emoji: string, color: string, id?: string) => {
     playCelebrationSound(appState.soundEnabled);
-    showToast(`Indikator "${name}" berhasil ditambahkan!`, 'success');
+    if (id) {
+      const updated = appState.timeCategories.map(c => (c.id === id ? { ...c, name, emoji, color } : c));
+      saveState({ ...appState, timeCategories: updated });
+      showToast(`Indikator "${name}" berhasil diperbarui!`, 'success');
+    } else {
+      const newId = 'tc-' + Date.now();
+      const newCategory = { id: newId, name, emoji, color };
+      saveState({
+        ...appState,
+        timeCategories: [...appState.timeCategories, newCategory],
+        activeTimeCategoryId: newId
+      });
+      showToast(`Indikator "${name}" berhasil ditambahkan!`, 'success');
+    }
+    setIsCategoryModalOpen(false);
+    setCategoryToEdit(null);
   };
 
   const handleDeleteTimeCategory = (id: string) => {
@@ -569,11 +650,20 @@ export default function App() {
       showToast('Minimal harus ada 1 indikator waktu.', 'warning');
       return;
     }
-    const updated = appState.timeCategories.filter(c => c.id !== id);
-    const nextActive = appState.activeTimeCategoryId === id ? updated[0].id : appState.activeTimeCategoryId;
-    saveState({ ...appState, timeCategories: updated, activeTimeCategoryId: nextActive });
-    playClickSound(appState.soundEnabled);
-    showToast('Indikator waktu telah dihapus.', 'info');
+    const cat = appState.timeCategories.find(c => c.id === id);
+    requestConfirmDelete({
+      title: 'Hapus Indikator Waktu?',
+      message: 'Apakah Anda yakin ingin menghapus indikator warna kegiatan ini?',
+      itemName: cat ? `${cat.emoji || '⏱️'} ${cat.name}` : 'Indikator Waktu',
+      confirmButtonText: 'Ya, Hapus Sekarang',
+      onConfirm: () => {
+        const updated = appState.timeCategories.filter(c => c.id !== id);
+        const nextActive = appState.activeTimeCategoryId === id ? updated[0].id : appState.activeTimeCategoryId;
+        saveState({ ...appState, timeCategories: updated, activeTimeCategoryId: nextActive });
+        playClickSound(appState.soundEnabled);
+        showToast('Indikator waktu telah dihapus.', 'info');
+      }
+    });
   };
 
   // Reflection actions
@@ -607,11 +697,18 @@ export default function App() {
   };
 
   const handleRemoveAffirmationImage = () => {
-    playClickSound(appState.soundEnabled);
-    saveState({ ...appState, affirmationImage: null });
-    setIsImageModalOpen(false);
-    setIsImageViewOpen(false);
-    showToast('Gambar afirmasi telah dihapus.', 'info');
+    requestConfirmDelete({
+      title: 'Hapus Gambar Afirmasi?',
+      message: 'Apakah Anda yakin ingin menghapus gambar afirmasi pribadi Anda?',
+      confirmButtonText: 'Ya, Hapus Gambar',
+      onConfirm: () => {
+        playClickSound(appState.soundEnabled);
+        saveState({ ...appState, affirmationImage: null });
+        setIsImageModalOpen(false);
+        setIsImageViewOpen(false);
+        showToast('Gambar afirmasi telah dihapus.', 'info');
+      }
+    });
   };
 
   // Custom Affirmation
@@ -796,8 +893,15 @@ export default function App() {
             selectedDate={selectedDate}
             todayDate={today}
             onToggleHabitDay={handleToggleHabitDay}
+            onEditHabit={habit => {
+              setHabitToEdit(habit);
+              setIsHabitModalOpen(true);
+            }}
             onDeleteHabit={handleDeleteHabit}
-            onOpenAddHabitModal={() => setIsHabitModalOpen(true)}
+            onOpenAddHabitModal={() => {
+              setHabitToEdit(null);
+              setIsHabitModalOpen(true);
+            }}
           />
         </motion.div>
 
@@ -817,10 +921,17 @@ export default function App() {
             activeCategoryId={appState.activeTimeCategoryId}
             timeTracking={appState.timeTracking}
             onSelectCategory={id => saveState({ ...appState, activeTimeCategoryId: id })}
+            onEditCategory={cat => {
+              setCategoryToEdit(cat);
+              setIsCategoryModalOpen(true);
+            }}
             onDeleteCategory={handleDeleteTimeCategory}
             onTogglePixel={handleTogglePixel}
             onResetMonth={handleResetMonthTime}
-            onOpenAddCategoryModal={() => setIsCategoryModalOpen(true)}
+            onOpenAddCategoryModal={() => {
+              setCategoryToEdit(null);
+              setIsCategoryModalOpen(true);
+            }}
             onSelectDate={handleSelectDate}
           />
         </motion.div>
@@ -897,13 +1008,21 @@ export default function App() {
 
       <HabitModal
         isOpen={isHabitModalOpen}
-        onClose={() => setIsHabitModalOpen(false)}
+        habitToEdit={habitToEdit}
+        onClose={() => {
+          setIsHabitModalOpen(false);
+          setHabitToEdit(null);
+        }}
         onSave={handleSaveHabit}
       />
 
       <TimeCategoryModal
         isOpen={isCategoryModalOpen}
-        onClose={() => setIsCategoryModalOpen(false)}
+        categoryToEdit={categoryToEdit}
+        onClose={() => {
+          setIsCategoryModalOpen(false);
+          setCategoryToEdit(null);
+        }}
         onSave={handleSaveCustomTimeCategory}
       />
 
@@ -945,6 +1064,16 @@ export default function App() {
         onClose={() => setIsBackupOpen(false)}
         onExport={handleExportData}
         onImport={handleImportData}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={deleteConfirm.isOpen}
+        title={deleteConfirm.title}
+        message={deleteConfirm.message}
+        itemName={deleteConfirm.itemName}
+        confirmButtonText={deleteConfirm.confirmButtonText}
+        onConfirm={deleteConfirm.onConfirm}
+        onClose={() => setDeleteConfirm(prev => ({ ...prev, isOpen: false }))}
       />
     </div>
   );

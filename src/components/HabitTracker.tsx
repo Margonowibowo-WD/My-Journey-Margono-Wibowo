@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Trash2, Check } from 'lucide-react';
+import { Plus, Edit2, Trash2, Check } from 'lucide-react';
 import { Habit } from '../types';
 import { formatDateKey } from '../utils/initialData';
 
@@ -10,9 +10,21 @@ interface HabitTrackerProps {
   selectedDate: Date;
   todayDate: Date;
   onToggleHabitDay: (habitId: string, dateStr: string) => void;
+  onEditHabit: (habit: Habit) => void;
   onDeleteHabit: (habitId: string) => void;
   onOpenAddHabitModal: () => void;
 }
+
+export const normalizeHabitColor = (color: string): string => {
+  const legacyMap: Record<string, string> = {
+    emerald: '#10b981',
+    indigo: '#6366f1',
+    amber: '#f59e0b',
+    rose: '#e11d48',
+    purple: '#8b5cf6'
+  };
+  return legacyMap[color] || color || '#10b981';
+};
 
 export const HabitTracker: React.FC<HabitTrackerProps> = ({
   habits,
@@ -21,20 +33,13 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
   selectedDate,
   todayDate,
   onToggleHabitDay,
+  onEditHabit,
   onDeleteHabit,
   onOpenAddHabitModal
 }) => {
   const daysInMonth = new Date(currentViewYear, currentViewMonth + 1, 0).getDate();
   const todayStr = formatDateKey(todayDate);
   const selectedStr = formatDateKey(selectedDate);
-
-  const colorMap: Record<string, string> = {
-    emerald: 'bg-emerald-500 text-white',
-    indigo: 'bg-indigo-500 text-white',
-    amber: 'bg-amber-500 text-white',
-    rose: 'bg-rose-500 text-white',
-    purple: 'bg-purple-500 text-white'
-  };
 
   return (
     <section className="bg-gradient-to-br from-emerald-100/90 via-teal-50/80 to-emerald-50/70 dark:from-emerald-950/60 dark:via-slate-900 dark:to-teal-950/40 rounded-3xl p-5 sm:p-7 shadow-sm border-2 border-emerald-300 dark:border-emerald-700/80 space-y-5">
@@ -67,12 +72,12 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-emerald-300/80 dark:border-emerald-800/80 bg-white/95 dark:bg-slate-900/95 shadow-xs">
-        <div className="min-w-[760px] p-4">
+        <div className="min-w-[780px] p-4">
           {/* Header Row */}
           <div
             className="grid gap-1 items-center pb-2 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-400 dark:text-slate-500"
             style={{
-              gridTemplateColumns: `180px repeat(${daysInMonth}, minmax(22px, 1fr)) 36px`
+              gridTemplateColumns: `190px repeat(${daysInMonth}, minmax(22px, 1fr)) 64px`
             }}
           >
             <div>Kebiasaan Margono</div>
@@ -101,60 +106,78 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
 
           {/* Habit Rows */}
           <div className="space-y-2 mt-3">
-            {habits.map(habit => (
-              <div
-                key={habit.id}
-                className="grid gap-1 items-center"
-                style={{
-                  gridTemplateColumns: `180px repeat(${daysInMonth}, minmax(22px, 1fr)) 36px`
-                }}
-              >
-                <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate pr-2" title={habit.name}>
-                  {habit.name}
-                </div>
+            {habits.map(habit => {
+              const hexColor = normalizeHabitColor(habit.color);
+              return (
+                <div
+                  key={habit.id}
+                  className="grid gap-1 items-center"
+                  style={{
+                    gridTemplateColumns: `190px repeat(${daysInMonth}, minmax(22px, 1fr)) 64px`
+                  }}
+                >
+                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                    {/* Titik kecil warna habit agar Pak Margono tahu warna apa yang digunakan */}
+                    <span
+                      className="w-3 h-3 rounded-full shrink-0 shadow-xs ring-1 ring-slate-300 dark:ring-slate-700"
+                      style={{ backgroundColor: hexColor }}
+                      title={`Indikator Warna: ${habit.color}`}
+                    />
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate" title={habit.name}>
+                      {habit.name}
+                    </span>
+                  </div>
 
-                {Array.from({ length: daysInMonth }).map((_, idx) => {
-                  const day = idx + 1;
-                  const dateStr = `${currentViewYear}-${String(currentViewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                  const isDone = !!(habit.completions && habit.completions[dateStr]);
-                  const activeClass = colorMap[habit.color] || colorMap.emerald;
+                  {Array.from({ length: daysInMonth }).map((_, idx) => {
+                    const day = idx + 1;
+                    const dateStr = `${currentViewYear}-${String(currentViewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const isDone = !!(habit.completions && habit.completions[dateStr]);
 
-                  const isCurrentDay = dateStr === todayStr;
-                  const isSelectedDayCol = dateStr === selectedStr;
+                    const isCurrentDay = dateStr === todayStr;
+                    const isSelectedDayCol = dateStr === selectedStr;
 
-                  let cellHighlightBorder = '';
-                  if (isCurrentDay) {
-                    cellHighlightBorder = 'ring-2 ring-sky-500 ring-offset-1 z-10';
-                  } else if (isSelectedDayCol) {
-                    cellHighlightBorder = 'ring-2 ring-indigo-500 ring-offset-1 z-10';
-                  }
+                    let cellHighlightBorder = '';
+                    if (isCurrentDay) {
+                      cellHighlightBorder = 'ring-2 ring-sky-500 ring-offset-1 z-10';
+                    } else if (isSelectedDayCol) {
+                      cellHighlightBorder = 'ring-2 ring-indigo-500 ring-offset-1 z-10';
+                    }
 
-                  return (
-                    <div
-                      key={`habit-${habit.id}-day-${day}`}
-                      onClick={() => onToggleHabitDay(habit.id, dateStr)}
-                      className={`h-6 w-full rounded cursor-pointer transition-all flex items-center justify-center text-[9px] font-black select-none ${cellHighlightBorder} ${
-                        isDone
-                          ? `${activeClass} shadow-sm`
-                          : 'bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700'
-                      }`}
+                    return (
+                      <div
+                        key={`habit-${habit.id}-day-${day}`}
+                        onClick={() => onToggleHabitDay(habit.id, dateStr)}
+                        className={`h-6 w-full rounded cursor-pointer transition-all flex items-center justify-center text-[9px] font-black select-none ${cellHighlightBorder} ${
+                          isDone
+                            ? 'text-white shadow-xs hover:opacity-90'
+                            : 'bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700'
+                        }`}
+                        style={isDone ? { backgroundColor: hexColor } : undefined}
+                      >
+                        {isDone ? '✓' : ''}
+                      </div>
+                    );
+                  })}
+
+                  <div className="flex items-center justify-center gap-0.5">
+                    <button
+                      onClick={() => onEditHabit(habit)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 transition-colors cursor-pointer"
+                      title="Edit Kebiasaan"
                     >
-                      {isDone ? '✓' : ''}
-                    </div>
-                  );
-                })}
-
-                <div className="flex items-center justify-center">
-                  <button
-                    onClick={() => onDeleteHabit(habit.id)}
-                    className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer"
-                    title="Hapus Kebiasaan"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => onDeleteHabit(habit.id)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer"
+                      title="Hapus Kebiasaan"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

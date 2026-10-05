@@ -11,6 +11,7 @@ import { CalendarSection } from './components/CalendarSection';
 import { TasksSection } from './components/TasksSection';
 import { HabitTracker } from './components/HabitTracker';
 import { TimeTracker } from './components/TimeTracker';
+import { AnalyticsSection } from './components/AnalyticsSection';
 import { JournalSection } from './components/JournalSection';
 import {
   PersonalNotesModal,
@@ -933,6 +934,23 @@ export default function App() {
               setIsCategoryModalOpen(true);
             }}
             onSelectDate={handleSelectDate}
+          />
+        </motion.div>
+
+        {/* Visualisasi Grafik Analytics: Doughnut & Pie Chart Habit & Time Tracker */}
+        <motion.div
+          initial={{ opacity: 0, y: 22 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-30px' }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <AnalyticsSection
+            habits={appState.habits}
+            timeCategories={appState.timeCategories}
+            timeTracking={appState.timeTracking}
+            currentViewYear={currentViewYear}
+            currentViewMonth={currentViewMonth}
+            selectedDate={selectedDate}
           />
         </motion.div>
 

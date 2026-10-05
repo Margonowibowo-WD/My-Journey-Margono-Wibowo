@@ -95,3 +95,14 @@ export function getInitialAppState(): AppStateData {
     }
   };
 }
+
+export function normalizeHabitColor(color: string): string {
+  const legacyMap: Record<string, string> = {
+    emerald: '#10b981',
+    indigo: '#6366f1',
+    amber: '#f59e0b',
+    rose: '#e11d48',
+    purple: '#8b5cf6'
+  };
+  return legacyMap[color] || color || '#10b981';
+}

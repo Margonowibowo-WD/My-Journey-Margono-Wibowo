@@ -106,3 +106,31 @@ export function normalizeHabitColor(color: string): string {
   };
   return legacyMap[color] || color || '#10b981';
 }
+
+export function advanceDeadlineDate(
+  currentDeadline: string,
+  repeat: 'daily' | 'weekly' | 'monthly' | '3months' | '6months' | 'yearly'
+): string {
+  if (!currentDeadline) return '';
+  const parts = currentDeadline.split('-');
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    const d = new Date(year, month, day);
+
+    if (repeat === 'daily') d.setDate(d.getDate() + 1);
+    else if (repeat === 'weekly') d.setDate(d.getDate() + 7);
+    else if (repeat === 'monthly') d.setMonth(d.getMonth() + 1);
+    else if (repeat === '3months') d.setMonth(d.getMonth() + 3);
+    else if (repeat === '6months') d.setMonth(d.getMonth() + 6);
+    else if (repeat === 'yearly') d.setFullYear(d.getFullYear() + 1);
+
+    const ny = d.getFullYear();
+    const nm = String(d.getMonth() + 1).padStart(2, '0');
+    const nd = String(d.getDate()).padStart(2, '0');
+    return `${ny}-${nm}-${nd}`;
+  }
+  return currentDeadline;
+}
+

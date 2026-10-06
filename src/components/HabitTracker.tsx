@@ -181,17 +181,6 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
           </div>
         </div>
       </div>
-
-      <div className="bg-gradient-to-r from-emerald-50/80 to-teal-50/50 dark:from-emerald-950/30 dark:to-slate-900 rounded-2xl p-4 border border-emerald-200/70 dark:border-emerald-800/60 flex flex-wrap items-center justify-between gap-4 text-xs font-body text-slate-600 dark:text-slate-300">
-        <div className="flex items-center gap-2">
-          <span className="text-base">💡</span>
-          <span><strong>Tips Margono:</strong> Konsistensi harian membentuk kebiasaan pemenang sejati.</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-block w-3.5 h-3.5 rounded bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600" /> Belum
-          <span className="inline-block w-3.5 h-3.5 rounded bg-emerald-500 ml-2" /> Selesai
-        </div>
-      </div>
     </section>
   );
 };

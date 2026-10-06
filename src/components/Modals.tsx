@@ -120,89 +120,160 @@ export const PersonalNotesModal: React.FC<{
   );
 };
 
-// 2. Add / Edit Scheduled Task Modal
+// 2. Add / Edit Scheduled Task Modal (Pengingat / Catatan Jangan Sampai Lupa)
 export const ScheduledTaskModal: React.FC<{
   isOpen: boolean;
   taskToEdit: ScheduledTask | null;
-  defaultDate: string;
+  defaultDate?: string;
   defaultDeadline: string;
   onClose: () => void;
-  onSave: (task: { id?: string; title: string; scheduledDate: string; deadline: string }) => void;
-}> = ({ isOpen, taskToEdit, defaultDate, defaultDeadline, onClose, onSave }) => {
+  onSave: (task: {
+    id?: string;
+    title: string;
+    deadline: string;
+    notes?: string;
+    repeat?: 'none' | 'daily' | 'weekly' | 'monthly' | '3months' | '6months' | 'yearly';
+  }) => void;
+}> = ({ isOpen, taskToEdit, defaultDeadline, onClose, onSave }) => {
   const [title, setTitle] = useState('');
-  const [scheduledDate, setScheduledDate] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [repeat, setRepeat] = useState<'none' | 'daily' | 'weekly' | 'monthly' | '3months' | '6months' | 'yearly'>('none');
+  const [notes, setNotes] = useState('');
 
   useEffect(() => {
     if (taskToEdit) {
       setTitle(taskToEdit.title);
-      setScheduledDate(taskToEdit.scheduledDate || defaultDate);
       setDeadline(taskToEdit.deadline || defaultDeadline);
+      setRepeat(taskToEdit.repeat || 'none');
+      setNotes(taskToEdit.notes || '');
     } else {
       setTitle('');
-      setScheduledDate(defaultDate);
       setDeadline(defaultDeadline);
+      setRepeat('none');
+      setNotes('');
     }
-  }, [taskToEdit, defaultDate, defaultDeadline, isOpen]);
+  }, [taskToEdit, defaultDeadline, isOpen]);
 
   if (!isOpen) return null;
 
+  const repeatOptions = [
+    { value: 'none', label: 'Sekali Saja', desc: 'Tanpa Pengulangan' },
+    { value: 'daily', label: 'Harian', desc: 'Setiap Hari' },
+    { value: 'weekly', label: 'Mingguan', desc: 'Setiap Minggu' },
+    { value: 'monthly', label: 'Bulanan', desc: 'Setiap Bulan' },
+    { value: '3months', label: 'Per 3 Bulan', desc: 'Triwulanan' },
+    { value: '6months', label: 'Per 6 Bulan', desc: 'Semesteran' },
+    { value: 'yearly', label: 'Tahunan', desc: 'Setiap Tahun' }
+  ];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-pop-check">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white">
-            {taskToEdit ? 'Edit Catatan Terjadwal Pribadi' : 'Tambah Catatan Terjadwal Pribadi'}
+          <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>⏰</span>
+            <span>{taskToEdit ? 'Edit Catatan Jangan Sampai Lupa' : 'Tambah Catatan Jangan Sampai Lupa'}</span>
           </h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="space-y-3 text-xs">
+
+        <div className="space-y-3.5 text-xs">
+          {/* Judul Catatan / Pengingat */}
           <div>
-            <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Nama Tugas Terjadwal:</label>
+            <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+              Nama Catatan / Agenda Pengingat:
+            </label>
             <input
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
               className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              placeholder="Contoh: Audit Finansial, Perpanjang Polis, Riset YouTube..."
+              placeholder="Contoh: Pembayaran Pajak, Audit Keuangan Bulanan, Upload Video YouTube..."
+              autoFocus
             />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Tanggal Mulai:</label>
-              <input
-                type="date"
-                value={scheduledDate}
-                onChange={e => setScheduledDate(e.target.value)}
-                className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Tenggat Waktu (Deadline):</label>
-              <input
-                type="date"
-                value={deadline}
-                onChange={e => setDeadline(e.target.value)}
-                className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              />
+
+          {/* Batas Waktu (Deadline Saja - Tanggal Mulai Ditiadakan) */}
+          <div>
+            <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+              <span>Batas Waktu (Deadline Jatuh Tempo):</span>
+              <span className="text-[10px] text-slate-400 font-normal">Waktu target penyelesaian</span>
+            </label>
+            <input
+              type="date"
+              value={deadline}
+              onChange={e => setDeadline(e.target.value)}
+              className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-sans"
+            />
+          </div>
+
+          {/* Pengulangan Rutin (Hari, Minggu, Bulan, Tahun) */}
+          <div>
+            <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+              <span>🔁 Pengulangan Rutin:</span>
+              <span className="text-[10px] text-slate-400 font-normal">(Untuk pengingat berkala)</span>
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+              {repeatOptions.map(opt => {
+                const isSelected = repeat === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setRepeat(opt.value as any)}
+                    className={`p-2 rounded-xl border text-left transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-indigo-50 dark:bg-indigo-950/70 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-bold ring-2 ring-indigo-500/20'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-750'
+                    }`}
+                  >
+                    <p className="text-xs font-bold leading-tight">{opt.label}</p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{opt.desc}</p>
+                  </button>
+                );
+              })}
             </div>
           </div>
+
+          {/* Keterangan / Informasi Tambahan */}
+          <div>
+            <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+              Keterangan / Informasi Tambahan:
+            </label>
+            <textarea
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              rows={3}
+              className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-y font-body text-xs leading-relaxed"
+              placeholder="Tuliskan catatan penting, nomor rekening, link berkas, syarat dokumen, atau rincian lainnya di sini..."
+            />
+          </div>
         </div>
-        <div className="flex items-center justify-end gap-2 pt-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+          >
             Batal
           </button>
           <button
             onClick={() => {
               if (title.trim()) {
-                onSave({ id: taskToEdit?.id, title: title.trim(), scheduledDate, deadline });
+                onSave({
+                  id: taskToEdit?.id,
+                  title: title.trim(),
+                  deadline,
+                  notes: notes.trim() || undefined,
+                  repeat
+                });
               }
             }}
             className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-500/20 active:scale-95 cursor-pointer"
           >
-            Simpan Tugas
+            {taskToEdit ? 'Perbarui Catatan' : 'Simpan Catatan'}
           </button>
         </div>
       </div>
@@ -268,18 +339,49 @@ export const DailyTaskModal: React.FC<{
                 className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-sky-500 focus:outline-none"
               />
             </div>
-            <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Prioritas:</label>
-              <select
-                value={priority}
-                onChange={e => setPriority(e.target.value as 'high' | 'medium' | 'low')}
-                className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-sky-500 focus:outline-none"
+          <div>
+            <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+              Tingkat Prioritas (3 Warna):
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setPriority('high')}
+                className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  priority === 'high'
+                    ? 'bg-red-600 text-white border-red-600 shadow-sm ring-2 ring-red-400/40'
+                    : 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-900/60 hover:bg-red-100'
+                }`}
               >
-                <option value="high">Tinggi (Mendesak)</option>
-                <option value="medium">Sedang</option>
-                <option value="low">Rendah / Santai</option>
-              </select>
+                <span className="w-2.5 h-2.5 rounded-full bg-red-400 border border-white shrink-0" />
+                <span>Merah (Tinggi)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPriority('medium')}
+                className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  priority === 'medium'
+                    ? 'bg-amber-500 text-white border-amber-500 shadow-sm ring-2 ring-amber-400/40'
+                    : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/60 hover:bg-amber-100'
+                }`}
+              >
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 border border-white shrink-0" />
+                <span>Kuning (Sedang)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPriority('low')}
+                className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  priority === 'low'
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-400/40'
+                    : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900/60 hover:bg-blue-100'
+                }`}
+              >
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-400 border border-white shrink-0" />
+                <span>Biru (Rendah)</span>
+              </button>
             </div>
+          </div>
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 pt-2">

@@ -1,9 +1,11 @@
 export interface ScheduledTask {
   id: string;
   title: string;
-  scheduledDate: string;
+  scheduledDate?: string;
   deadline: string;
   completed: boolean;
+  notes?: string;
+  repeat?: 'none' | 'daily' | 'weekly' | 'monthly' | '3months' | '6months' | 'yearly';
 }
 
 export interface DailyTask {

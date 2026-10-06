@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { AppStateData, ScheduledTask, DailyTask, DayReflection, Habit, TimeCategory } from './types';
-import { getInitialAppState, formatDateKey, getOffsetDateString } from './utils/initialData';
+import { getInitialAppState, formatDateKey, getOffsetDateString, advanceDeadlineDate } from './utils/initialData';
 import { playClickSound, playCelebrationSound, playFanfareSound, initAudioContext } from './utils/audio';
 import { triggerConfetti, triggerSuperConfetti } from './utils/confetti';
 import { fetchNationalHolidays } from './utils/holidays';
@@ -482,25 +482,44 @@ export default function App() {
     saveState({ ...appState, scheduledTasks: updated });
   };
 
-  const handleSaveScheduledTask = (data: { id?: string; title: string; scheduledDate: string; deadline: string }) => {
+  const handleSaveScheduledTask = (data: {
+    id?: string;
+    title: string;
+    deadline: string;
+    notes?: string;
+    repeat?: 'none' | 'daily' | 'weekly' | 'monthly' | '3months' | '6months' | 'yearly';
+  }) => {
     if (data.id) {
       const updated = appState.scheduledTasks.map(t => (t.id === data.id ? { ...t, ...data } : t));
       saveState({ ...appState, scheduledTasks: updated });
-      showToast('Catatan terjadwal berhasil diperbarui!', 'success');
+      showToast('Catatan berhasil diperbarui!', 'success');
     } else {
-      const newTask = {
+      const newTask: ScheduledTask = {
         id: 'st-' + Date.now(),
         title: data.title,
-        scheduledDate: data.scheduledDate,
         deadline: data.deadline,
-        completed: false
+        completed: false,
+        notes: data.notes,
+        repeat: data.repeat || 'none'
       };
       saveState({ ...appState, scheduledTasks: [...appState.scheduledTasks, newTask] });
       playCelebrationSound(appState.soundEnabled);
-      showToast('Catatan terjadwal baru ditambahkan!', 'success');
+      showToast('Catatan Jangan Sampai Lupa berhasil ditambahkan!', 'success');
     }
     setIsScheduledModalOpen(false);
     setTaskToEdit(null);
+  };
+
+  const handleAdvanceRecurringScheduledTask = (id: string) => {
+    const task = appState.scheduledTasks.find(t => t.id === id);
+    if (!task || !task.repeat || task.repeat === 'none') return;
+    const nextDeadline = advanceDeadlineDate(task.deadline, task.repeat);
+    const updated = appState.scheduledTasks.map(t =>
+      t.id === id ? { ...t, deadline: nextDeadline, completed: false } : t
+    );
+    saveState({ ...appState, scheduledTasks: updated });
+    playCelebrationSound(appState.soundEnabled);
+    showToast(`Catatan diperbarui ke periode berikutnya (${nextDeadline})!`, 'success');
   };
 
   const handleDeleteScheduledTask = (id: string) => {
@@ -877,6 +896,7 @@ export default function App() {
               setTaskToEdit(null);
               setIsScheduledModalOpen(true);
             }}
+            onAdvanceRecurringScheduledTask={handleAdvanceRecurringScheduledTask}
           />
         </motion.div>
 
@@ -1004,7 +1024,6 @@ export default function App() {
       <ScheduledTaskModal
         isOpen={isScheduledModalOpen}
         taskToEdit={taskToEdit}
-        defaultDate={formatDateKey(selectedDate)}
         defaultDeadline={getOffsetDateString(7)}
         onClose={() => {
           setIsScheduledModalOpen(false);

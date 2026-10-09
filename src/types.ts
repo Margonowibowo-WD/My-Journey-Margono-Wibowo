@@ -30,6 +30,8 @@ export interface TimeCategory {
   emoji: string;
 }
 
+export type TimeTrackingData = Record<string, Record<number, string>>;
+
 export interface DayReflection {
   impianTerbesar: string;
   kenapaPenting: string;

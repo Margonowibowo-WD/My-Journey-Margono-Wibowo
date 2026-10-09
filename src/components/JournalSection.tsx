@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Save, Sparkles, HardDrive } from 'lucide-react';
+import { Save, Sparkles, HardDrive, Eye, EyeOff } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { DayReflection } from '../types';
 import { formatDateKey } from '../utils/initialData';
 
@@ -21,6 +22,7 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
   onOpenBackupModal
 }) => {
   const [activeTab, setActiveTab] = useState<'journal' | 'vision'>('journal');
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const selectedStr = formatDateKey(selectedDate);
   const currentReflection = reflections[selectedStr] || {
     impianTerbesar: '',
@@ -66,84 +68,120 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
 
   return (
     <section className="bg-gradient-to-br from-rose-50/30 via-white to-amber-50/20 dark:from-slate-900 dark:via-slate-900 dark:to-rose-950/15 rounded-3xl shadow-sm border border-rose-100/70 dark:border-slate-800 overflow-hidden">
-      <div className="px-5 sm:px-7 pt-5 sm:pt-6">
-        <div className="flex items-center gap-3 pb-4 border-b-2 border-slate-100 dark:border-slate-800">
-          <span className="w-1.5 h-11 rounded-full bg-rose-500 shrink-0" />
-          <div className="w-11 h-11 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 text-xl">
-            🗓️
+      <div className="px-5 sm:px-7 pt-5 sm:pt-6 pb-4">
+        <div className="flex items-center justify-between gap-3 pb-3 border-b-2 border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="w-1.5 h-10 rounded-full bg-rose-500 shrink-0" />
+            <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 text-xl">
+              🗓️
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-600 dark:text-rose-400">
+                Refleksi & Afirmasi
+              </p>
+              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-tight truncate">
+                Jurnal Pribadi
+              </h3>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-600 dark:text-rose-400">
-              Refleksi & Afirmasi
-            </p>
-            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-tight">
-              Jurnal Pribadi
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-body mt-0.5">
-              Catatan refleksi mendalam dan bank afirmasi positif Anda.
-            </p>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-rose-100/80 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800 shrink-0">
+              {dateFormattedText}
+            </span>
+
+            {/* Tombol Show / Hide dengan animasi transisi halus */}
+            <button
+              type="button"
+              onClick={() => setIsCollapsed(prev => !prev)}
+              className="px-3.5 py-1.5 rounded-xl bg-white/90 hover:bg-white dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 cursor-pointer shadow-xs active:scale-95"
+              title={isCollapsed ? 'Tampilkan Jurnal Pribadi' : 'Sembunyikan Jurnal Pribadi'}
+            >
+              {isCollapsed ? (
+                <>
+                  <Eye className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                  <span>Show</span>
+                </>
+              ) : (
+                <>
+                  <EyeOff className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                  <span>Hide</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Sub Tabs */}
-      <div className="flex border-b border-slate-200/80 dark:border-slate-800 overflow-x-auto bg-slate-50/70 dark:bg-slate-950/60 p-2 gap-1 sm:gap-2">
-        <button
-          onClick={() => setActiveTab('journal')}
-          className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
-            activeTab === 'journal'
-              ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/60'
-          }`}
-        >
-          <span className="text-base">✨</span>
-          Catatan Harian & Refleksi Diri
-        </button>
+      {/* Konten Collapsible dengan Animasi Memanjakan Mata */}
+      <AnimatePresence initial={false}>
+        {!isCollapsed && (
+          <motion.div
+            key="journal-collapsible-content"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden"
+          >
+            {/* Sub Tabs */}
+            <div className="flex border-b border-slate-200/80 dark:border-slate-800 overflow-x-auto bg-slate-50/70 dark:bg-slate-950/60 p-2 gap-1 sm:gap-2">
+              <button
+                onClick={() => setActiveTab('journal')}
+                className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+                  activeTab === 'journal'
+                    ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/60'
+                }`}
+              >
+                <span className="text-base">✨</span>
+                Catatan Harian & Refleksi Diri
+              </button>
 
-        <button
-          onClick={() => setActiveTab('vision')}
-          className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
-            activeTab === 'vision'
-              ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm font-bold'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/60'
-          }`}
-        >
-          <Sparkles className="w-4 h-4 text-amber-500" />
-          Bank Afirmasi & Rekomendasi
-        </button>
-      </div>
-
-      {/* Tab 1: Catatan Harian & Refleksi Diri */}
-      {activeTab === 'journal' && (
-        <div className="p-5 sm:p-8 space-y-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b-2 border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-3">
-              <span className="w-1.5 h-11 rounded-full bg-rose-500 shrink-0" />
-              <div className="w-11 h-11 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 text-xl">
-                🌟
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-600 dark:text-rose-400">
-                  Jurnal & Refleksi Diri
-                </p>
-                <h3 className="text-base sm:text-xl font-extrabold text-slate-900 dark:text-white leading-tight">
-                  Catatan & Refleksi Diri Margono Wibowo
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-body mt-0.5">
-                  Refleksi mendalam untuk tanggal{' '}
-                  <span className="font-bold text-rose-600 dark:text-rose-400">{dateFormattedText}</span>. Rasakan setiap pertanyaan dan temukan kejernihan dalam jiwa.
-                </p>
-              </div>
+              <button
+                onClick={() => setActiveTab('vision')}
+                className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+                  activeTab === 'vision'
+                    ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/60'
+                }`}
+              >
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                Bank Afirmasi & Rekomendasi
+              </button>
             </div>
 
-            <button
-              onClick={handleSave}
-              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white text-xs sm:text-sm font-bold shadow-lg shadow-sky-500/25 active:scale-95 transition-all flex items-center gap-2 cursor-pointer self-start sm:self-auto"
-            >
-              <Save className="w-4 h-4" />
-              Simpan Refleksi Lengkap
-            </button>
-          </div>
+            {/* Tab 1: Catatan Harian & Refleksi Diri */}
+            {activeTab === 'journal' && (
+              <div className="p-5 sm:p-8 space-y-8">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b-2 border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <span className="w-1.5 h-11 rounded-full bg-rose-500 shrink-0" />
+                    <div className="w-11 h-11 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 text-xl">
+                      🌟
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-600 dark:text-rose-400">
+                        Jurnal & Refleksi Diri
+                      </p>
+                      <h3 className="text-base sm:text-xl font-extrabold text-slate-900 dark:text-white leading-tight">
+                        Catatan & Refleksi Diri Margono Wibowo
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-body mt-0.5">
+                        Refleksi tanggal{' '}
+                        <span className="font-bold text-rose-600 dark:text-rose-400">{dateFormattedText}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleSave}
+                    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white text-xs sm:text-sm font-bold shadow-lg shadow-sky-500/25 active:scale-95 transition-all flex items-center gap-2 cursor-pointer self-start sm:self-auto"
+                  >
+                    <Save className="w-4 h-4" />
+                    Simpan Refleksi Lengkap
+                  </button>
+                </div>
 
           {/* PILAR 1: MIMPI */}
           <div className="rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-amber-100/90 via-orange-50/80 to-amber-50/60 dark:from-amber-950/60 dark:via-orange-950/30 dark:to-slate-900 border-2 border-amber-300 dark:border-amber-700/80 space-y-6 shadow-sm">
@@ -352,9 +390,6 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
               <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-tight">
                 Bank Afirmasi & Fitur Pendukung
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-body mt-0.5">
-                Dirancang khusus untuk memicu ketenangan dan semangat Margono Wibowo.
-              </p>
             </div>
           </div>
 
@@ -410,6 +445,9 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
           </div>
         </div>
       )}
+    </motion.div>
+  )}
+</AnimatePresence>
     </section>
   );
 };

@@ -78,11 +78,11 @@ const SvgChartRenderer: React.FC<SvgChartRendererProps> = ({
   centerSubtitle,
   unit
 }) => {
-  const size = 260;
+  const size = 280;
   const cx = size / 2;
   const cy = size / 2;
-  const rOuter = 100;
-  const rInner = type === 'doughnut' ? 62 : 0;
+  const rOuter = 110;
+  const rInner = type === 'doughnut' ? 68 : 0;
 
   const totalValue = slices.reduce((acc, s) => acc + s.value, 0);
 
@@ -117,78 +117,94 @@ const SvgChartRenderer: React.FC<SvgChartRendererProps> = ({
   const activeSlice = calculated.find(s => s.id === hoveredId);
 
   return (
-    <div className="relative flex flex-col items-center justify-center">
-      <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        className="overflow-visible select-none drop-shadow-sm"
-      >
-        <defs>
-          <filter id="chart-glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
-        </defs>
-
-        {calculated.map(slice => {
-          const isHovered = hoveredId === slice.id;
-          const pathD = describeDonutSlice(cx, cy, isHovered ? rOuter + 6 : rOuter, rInner, slice.startAngle, slice.endAngle);
-
-          return (
-            <path
-              key={slice.id}
-              d={pathD}
-              fill={slice.color}
-              className="cursor-pointer transition-all duration-300"
-              style={{
-                opacity: hoveredId && !isHovered ? 0.45 : 1,
-                transformOrigin: `${cx}px ${cy}px`,
-                filter: isHovered ? 'url(#chart-glow)' : undefined
-              }}
-              onMouseEnter={() => onHover(slice.id)}
-              onMouseLeave={() => onHover(null)}
-              stroke="#ffffff"
-              strokeWidth={calculated.length > 1 ? 2 : 0}
-            />
-          );
-        })}
-      </svg>
-
-      {/* Doughnut Center Stats */}
-      {type === 'doughnut' && (
-        <div
-          className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center px-4"
-          style={{ width: size, height: size }}
+    <div className="relative flex flex-col items-center justify-center w-full">
+      <div className="relative flex items-center justify-center">
+        <svg
+          width={size}
+          height={size}
+          viewBox={`0 0 ${size} ${size}`}
+          className="overflow-visible select-none drop-shadow-md"
         >
-          {activeSlice ? (
-            <div className="animate-pop-check">
-              <span className="text-xl block">{activeSlice.emoji || '📌'}</span>
-              <p className="text-xs font-black text-slate-900 dark:text-white truncate max-w-[110px] leading-tight">
-                {activeSlice.name}
-              </p>
-              <p className="text-sm font-extrabold text-sky-600 dark:text-sky-400 mt-0.5">
-                {activeSlice.value} {unit}
-              </p>
-              <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                {activeSlice.percentage.toFixed(1)}%
-              </p>
-            </div>
-          ) : (
+          <defs>
+            <filter id="chart-glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3.5" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
+
+          {calculated.map(slice => {
+            const isHovered = hoveredId === slice.id;
+            const pathD = describeDonutSlice(cx, cy, isHovered ? rOuter + 7 : rOuter, rInner, slice.startAngle, slice.endAngle);
+
+            return (
+              <path
+                key={slice.id}
+                d={pathD}
+                fill={slice.color}
+                className="cursor-pointer transition-all duration-300"
+                style={{
+                  opacity: hoveredId && !isHovered ? 0.45 : 1,
+                  transformOrigin: `${cx}px ${cy}px`,
+                  filter: isHovered ? 'url(#chart-glow)' : undefined
+                }}
+                onMouseEnter={() => onHover(slice.id)}
+                onMouseLeave={() => onHover(null)}
+                stroke="#ffffff"
+                strokeWidth={calculated.length > 1 ? 2.5 : 0}
+              >
+                <title>{`${slice.name}: ${slice.value} ${unit} (${slice.percentage.toFixed(1)}%)`}</title>
+              </path>
+            );
+          })}
+        </svg>
+
+        {/* Doughnut Center Info (Tetap Bersih & Konsisten) */}
+        {type === 'doughnut' && (
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center px-4"
+            style={{ width: size, height: size }}
+          >
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 {centerSubtitle || 'Total'}
               </p>
-              <p className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-tight mt-0.5">
+              <p className="text-lg sm:text-xl font-black text-slate-900 dark:text-white leading-tight mt-0.5">
                 {centerTitle || `${totalValue} ${unit}`}
               </p>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
                 {slices.length} Kategori
               </p>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
+
+      {/* Rincian Detail Interaktif di Bawah Grafik (Hanya Muncul saat Mouse di Atas Irisan) */}
+      <div className="mt-3.5 min-h-[42px] flex items-center justify-center w-full px-2">
+        {activeSlice ? (
+          <div
+            className="px-4 py-1.5 rounded-2xl bg-white dark:bg-slate-800 border-2 shadow-md flex items-center gap-2.5 animate-pop-check transition-all max-w-full truncate"
+            style={{ borderColor: activeSlice.color }}
+          >
+            <span className="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: activeSlice.color }} />
+            <span className="text-base">{activeSlice.emoji || '📌'}</span>
+            <span className="font-extrabold text-xs text-slate-900 dark:text-white truncate max-w-[140px] sm:max-w-[200px]">
+              {activeSlice.name}
+            </span>
+            <span className="font-black text-xs text-sky-600 dark:text-sky-400 shrink-0">
+              {activeSlice.value} {unit}
+            </span>
+            <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 shrink-0 font-mono">
+              {activeSlice.percentage.toFixed(1)}%
+            </span>
+          </div>
+        ) : (
+          <div className="px-3.5 py-1.5 rounded-full bg-slate-100/90 dark:bg-slate-800/90 text-[11px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5 border border-slate-200/60 dark:border-slate-700/60 shadow-2xs">
+            <span>👆</span>
+            <span>Arahkan mouse ke irisan grafik untuk melihat detailnya</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -331,9 +347,6 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
             <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-tight">
               Grafik Doughnut & Pie Chart Tracker
             </h3>
-            <p className="text-xs text-slate-600 dark:text-slate-400 font-body mt-0.5">
-              Grafik interaktif untuk memonitor efisiensi 24 Jam dan kepatuhan habit Anda secara transparan.
-            </p>
           </div>
         </div>
 
@@ -435,7 +448,7 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
             </div>
 
             {/* Chart Area */}
-            <div className="py-4 flex justify-center">
+            <div className="pt-5 pb-2 flex justify-center">
               <SvgChartRenderer
                 slices={timeSlices}
                 type={timeChartType}
@@ -446,45 +459,6 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
                 unit="Jam"
               />
             </div>
-          </div>
-
-          {/* Legend Items */}
-          <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800 max-h-56 overflow-y-auto pr-1">
-            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1 flex items-center justify-between">
-              <span>Distribusi Kegiatan:</span>
-              <span className="text-[10px] font-normal text-slate-400">Arahkan kursor untuk sorot</span>
-            </p>
-            {timeSlices.length === 0 ? (
-              <p className="text-xs text-slate-400 italic text-center py-2">Belum ada jam yang diwarnai.</p>
-            ) : (
-              timeSlices.map(slice => {
-                const isHovered = hoveredTimeSlice === slice.id;
-                return (
-                  <div
-                    key={slice.id}
-                    onMouseEnter={() => setHoveredTimeSlice(slice.id)}
-                    onMouseLeave={() => setHoveredTimeSlice(null)}
-                    className={`flex items-center justify-between p-2 rounded-xl text-xs transition-all cursor-pointer ${
-                      isHovered
-                        ? 'bg-sky-50 dark:bg-slate-800 ring-2 ring-sky-400 scale-[1.01]'
-                        : 'bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0 pr-2">
-                      <span className="w-3 h-3 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: slice.color }} />
-                      <span className="text-base">{slice.emoji || '⏱️'}</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200 truncate">{slice.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="font-bold text-slate-700 dark:text-slate-300">{slice.value} Jam</span>
-                      <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">
-                        {slice.percentage.toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
           </div>
         </div>
 
@@ -544,7 +518,7 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
             </div>
 
             {/* Chart Area */}
-            <div className="py-4 flex justify-center">
+            <div className="pt-5 pb-2 flex justify-center">
               <SvgChartRenderer
                 slices={habitSlices}
                 type={habitChartType}
@@ -555,47 +529,6 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
                 unit="Hari"
               />
             </div>
-          </div>
-
-          {/* Legend Items */}
-          <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800 max-h-56 overflow-y-auto pr-1">
-            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1 flex items-center justify-between">
-              <span>Konsistensi Kebiasaan Baik:</span>
-              <span className="text-[10px] font-normal text-slate-400">Target: {daysInMonth} Hari</span>
-            </p>
-            {habitSlices.length === 0 ? (
-              <p className="text-xs text-slate-400 italic text-center py-2">Belum ada kebiasaan yang diceklis.</p>
-            ) : (
-              habitSlices.map(slice => {
-                const isHovered = hoveredHabitSlice === slice.id;
-                const habitMonthlyRate = (slice.value / daysInMonth) * 100;
-                return (
-                  <div
-                    key={slice.id}
-                    onMouseEnter={() => setHoveredHabitSlice(slice.id)}
-                    onMouseLeave={() => setHoveredHabitSlice(null)}
-                    className={`flex items-center justify-between p-2 rounded-xl text-xs transition-all cursor-pointer ${
-                      isHovered
-                        ? 'bg-emerald-50 dark:bg-slate-800 ring-2 ring-emerald-400 scale-[1.01]'
-                        : 'bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0 pr-2">
-                      <span className="w-3 h-3 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: slice.color }} />
-                      <span className="font-bold text-slate-800 dark:text-slate-200 truncate">{slice.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="font-bold text-slate-700 dark:text-slate-300">
-                        {slice.value}/{daysInMonth} Hari
-                      </span>
-                      <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-emerald-700 dark:text-emerald-400">
-                        {habitMonthlyRate.toFixed(0)}%
-                      </span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
           </div>
         </div>
       </div>

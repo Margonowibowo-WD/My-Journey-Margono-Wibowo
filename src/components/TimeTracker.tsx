@@ -1,7 +1,7 @@
-import React from 'react';
-import { Plus, Edit2, Trash2, Clock } from 'lucide-react';
-import { TimeCategory } from '../types';
-import { formatDateKey } from '../utils/initialData';
+import React, { useState } from 'react';
+import { Plus, Trash2, Edit2, Clock, Eye, EyeOff } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { TimeCategory, TimeTrackingData } from '../types';
 
 interface TimeTrackerProps {
   currentViewYear: number;
@@ -10,7 +10,7 @@ interface TimeTrackerProps {
   todayDate: Date;
   timeCategories: TimeCategory[];
   activeCategoryId: string;
-  timeTracking: Record<string, Record<number, string>>;
+  timeTracking: TimeTrackingData;
   onSelectCategory: (id: string) => void;
   onEditCategory: (cat: TimeCategory) => void;
   onDeleteCategory: (id: string) => void;
@@ -19,6 +19,11 @@ interface TimeTrackerProps {
   onOpenAddCategoryModal: () => void;
   onSelectDate: (year: number, month: number, day: number) => void;
 }
+
+const monthNames = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+];
 
 export const TimeTracker: React.FC<TimeTrackerProps> = ({
   currentViewYear,
@@ -36,15 +41,10 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({
   onOpenAddCategoryModal,
   onSelectDate
 }) => {
-  const monthNames = [
-    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-    "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-  ];
-  const shortMonthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const daysInMonth = new Date(currentViewYear, currentViewMonth + 1, 0).getDate();
-  const todayStr = formatDateKey(todayDate);
-  const selectedStr = formatDateKey(selectedDate);
 
+  // Map category id to full object
   const categoryMap: Record<string, TimeCategory> = {};
   timeCategories.forEach(c => {
     categoryMap[c.id] = c;
@@ -67,12 +67,13 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({
   }
 
   return (
-    <section className="bg-gradient-to-br from-purple-100/90 via-violet-50/80 to-indigo-50/70 dark:from-purple-950/60 dark:via-slate-900 dark:to-violet-950/40 rounded-3xl p-5 sm:p-7 shadow-sm border-2 border-purple-300 dark:border-purple-700/80 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b-2 border-purple-200/80 dark:border-purple-900/60">
-        <div className="flex items-center gap-3">
-          <span className="w-1.5 h-11 rounded-full bg-violet-500 shrink-0" />
-          <div className="w-11 h-11 rounded-2xl bg-violet-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-            <Clock className="w-6 h-6" />
+    <section className="bg-gradient-to-br from-purple-100/90 via-violet-50/80 to-indigo-50/70 dark:from-purple-950/60 dark:via-slate-900 dark:to-violet-950/40 rounded-3xl p-5 sm:p-7 shadow-sm border-2 border-purple-300 dark:border-purple-700/80 space-y-4">
+      {/* Header Utama Section */}
+      <div className="flex items-center justify-between gap-3 pb-3 border-b-2 border-purple-200/80 dark:border-purple-900/60">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="w-1.5 h-10 rounded-full bg-violet-500 shrink-0" />
+          <div className="w-10 h-10 rounded-2xl bg-violet-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+            <Clock className="w-5 h-5" />
           </div>
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-800 dark:text-purple-300">
@@ -80,261 +81,280 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({
             </p>
             <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-tight flex items-center gap-2 flex-wrap">
               <span>Time Tracker 24 Jam Pixel</span>
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-white/90 dark:bg-violet-950/80 text-violet-800 dark:text-violet-300 border border-violet-300 dark:border-violet-800 shadow-2xs">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/90 dark:bg-violet-950/80 text-violet-800 dark:text-violet-300 border border-violet-300 dark:border-violet-800 shadow-2xs">
                 {monthNames[currentViewMonth]} {currentViewYear}
               </span>
             </h3>
-            <p className="text-xs text-slate-600 dark:text-slate-400 font-body mt-0.5">
-              Pixel Matrix 24 Jam (ke samping) × {daysInMonth} Hari (ke bawah). Pilih indikator warna, lalu klik kotak jam untuk merekam aktivitas.
-            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-purple-100/90 dark:bg-purple-950/90 text-purple-800 dark:text-purple-300 border border-purple-300/80 dark:border-purple-700 shrink-0">
+            {totalFilledHours} Jam Tercatat
+          </span>
+
+          {/* Tombol Show / Hide dengan animasi transisi halus */}
           <button
-            onClick={onOpenAddCategoryModal}
-            className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-md shadow-purple-500/20 active:scale-95 flex items-center gap-1.5 cursor-pointer"
+            type="button"
+            onClick={() => setIsCollapsed(prev => !prev)}
+            className="px-3.5 py-1.5 rounded-xl bg-white/90 hover:bg-white dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 border border-purple-200 dark:border-slate-700 cursor-pointer shadow-xs active:scale-95"
+            title={isCollapsed ? 'Tampilkan Time Tracker 24 Jam Pixel' : 'Sembunyikan Time Tracker 24 Jam Pixel'}
           >
-            <Plus className="w-4 h-4" />
-            + Indikator Kustom
-          </button>
-          <button
-            onClick={onResetMonth}
-            title="Kosongkan Catatan Jam Bulan Ini"
-            className="p-2 rounded-xl border border-purple-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-500 hover:text-rose-600 transition-colors cursor-pointer bg-white/80 dark:bg-slate-800"
-          >
-            <Trash2 className="w-4 h-4" />
+            {isCollapsed ? (
+              <>
+                <Eye className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                <span>Show</span>
+              </>
+            ) : (
+              <>
+                <EyeOff className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                <span>Hide</span>
+              </>
+            )}
           </button>
         </div>
       </div>
 
-      {/* Kuas Warna Aktif */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-xs flex-wrap gap-2">
-          <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-            <span>🎨</span> Kuas Warna Aktif (Klik untuk memilih indikator mewarnai pixel):
-          </span>
-          <span className="text-[11px] text-slate-400 dark:text-slate-500 font-body">
-            Klik kotak pixel jam untuk mewarnai atau mengosongkan
-          </span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {timeCategories.map(cat => {
-            const isSelected = cat.id === activeCategoryId;
-            return (
-              <div
-                key={cat.id}
-                onClick={() => onSelectCategory(cat.id)}
-                className={`group relative px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer bg-white dark:bg-slate-800 shadow-xs ${
-                  isSelected ? 'scale-105 shadow-md' : 'border border-slate-200 dark:border-slate-700 hover:border-slate-300'
-                }`}
-                style={
-                  isSelected
-                    ? {
-                        border: `2px solid ${cat.color}`,
-                        boxShadow: `0 0 12px ${cat.color}66`
-                      }
-                    : undefined
-                }
-              >
-                <span className="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: cat.color }} />
-                <span>{cat.emoji || '⏱️'}</span>
-                <span className="text-slate-800 dark:text-slate-100">{cat.name}</span>
-                {isSelected && (
-                  <span className="text-[10px] px-1 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-extrabold">
-                    Kuas Aktif
-                  </span>
-                )}
-                <div className="flex items-center gap-0.5 ml-1">
-                  <button
-                    type="button"
-                    onClick={e => {
-                      e.stopPropagation();
-                      onEditCategory(cat);
-                    }}
-                    title={`Edit Indikator ${cat.name}`}
-                    className="p-1 rounded text-slate-400 hover:text-purple-600 hover:bg-purple-100 dark:hover:bg-purple-950/60 transition-colors cursor-pointer"
-                  >
-                    <Edit2 className="w-3 h-3" />
-                  </button>
-                  {timeCategories.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={e => {
-                        e.stopPropagation();
-                        onDeleteCategory(cat.id);
-                      }}
-                      title={`Hapus Indikator ${cat.name}`}
-                      className="p-1 rounded text-slate-300 hover:text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-950/60 transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  )}
+      {/* Konten Collapsible dengan Animasi Memanjakan Mata */}
+      <AnimatePresence initial={false}>
+        {!isCollapsed && (
+          <motion.div
+            key="time-tracker-collapsible"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden space-y-5 pt-1"
+          >
+            {/* Action Bar: Tambah Indikator & Reset */}
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              {/* Kuas Warna Aktif */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <span>🎨</span> Kuas Warna Aktif:
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {timeCategories.map(cat => {
+                    const isSelected = cat.id === activeCategoryId;
+                    return (
+                      <div
+                        key={cat.id}
+                        onClick={() => onSelectCategory(cat.id)}
+                        className={`group relative px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer bg-white dark:bg-slate-800 shadow-xs ${
+                          isSelected ? 'scale-105 shadow-md' : 'border border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                        }`}
+                        style={
+                          isSelected
+                            ? {
+                                border: `2px solid ${cat.color}`,
+                                boxShadow: `0 0 12px ${cat.color}66`
+                              }
+                            : undefined
+                        }
+                      >
+                        <span className="w-3 h-3 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: cat.color }} />
+                        <span>{cat.emoji || '⏱️'}</span>
+                        <span className="text-slate-800 dark:text-slate-100">{cat.name}</span>
+                        {isSelected && (
+                          <span className="text-[10px] px-1 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-extrabold">
+                            Aktif
+                          </span>
+                        )}
+                        <div className="flex items-center gap-0.5 ml-1">
+                          <button
+                            type="button"
+                            onClick={e => {
+                              e.stopPropagation();
+                              onEditCategory(cat);
+                            }}
+                            title={`Edit Indikator ${cat.name}`}
+                            className="p-1 rounded text-slate-400 hover:text-purple-600 hover:bg-purple-100 dark:hover:bg-purple-950/60 transition-colors cursor-pointer"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </button>
+                          {timeCategories.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={e => {
+                                e.stopPropagation();
+                                onDeleteCategory(cat.id);
+                              }}
+                              title={`Hapus Indikator ${cat.name}`}
+                              className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-950/60 transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </div>
 
-      {/* Matrix 24 Jam × Days of Month */}
-      <div className="overflow-x-auto rounded-2xl border border-violet-200/50 dark:border-slate-800 bg-white/80 dark:bg-slate-900/90 shadow-sm">
-        <div className="min-w-[820px] p-4 select-none">
-          {/* Header Row (Hours 00 - 23) */}
-          <div
-            className="grid gap-1 items-center pb-2 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-400 dark:text-slate-500 text-center"
-            style={{
-              gridTemplateColumns: '90px repeat(24, minmax(22px, 1fr)) 55px'
-            }}
-          >
-            <div className="text-left pl-1">Tanggal</div>
-            {Array.from({ length: 24 }).map((_, h) => {
-              const hourStr = String(h).padStart(2, '0');
-              return (
-                <div key={`header-hour-${h}`} title={`Pukul ${hourStr}:00`}>
-                  {hourStr}
-                </div>
-              );
-            })}
-            <div className="text-right pr-1">Total</div>
-          </div>
-
-          {/* Matrix Rows */}
-          <div className="space-y-1.5 mt-2.5">
-            {Array.from({ length: daysInMonth }).map((_, idx) => {
-              const day = idx + 1;
-              const dateStr = `${currentViewYear}-${String(currentViewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-              const isCurrentDay = dateStr === todayStr;
-              const isSelectedDay = dateStr === selectedStr;
-              const dayData = timeTracking[dateStr] || {};
-
-              let rowFilledHours = 0;
-
-              let rowDayClass = 'font-bold text-slate-700 dark:text-slate-300';
-              if (isCurrentDay) {
-                rowDayClass = 'font-extrabold text-sky-600 dark:text-sky-400 bg-sky-500/15 dark:bg-sky-500/25 rounded-md px-1 ring-2 ring-sky-500/80';
-              } else if (isSelectedDay) {
-                rowDayClass = 'font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/15 dark:bg-indigo-500/25 rounded-md px-1 ring-2 ring-indigo-500/80';
-              }
-
-              return (
-                <div
-                  key={`time-row-${day}`}
-                  className="grid gap-1 items-center hover:bg-slate-50/60 dark:hover:bg-slate-800/40 rounded-lg transition-colors py-0.5"
-                  style={{
-                    gridTemplateColumns: '90px repeat(24, minmax(22px, 1fr)) 55px'
-                  }}
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <button
+                  onClick={onOpenAddCategoryModal}
+                  className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-md shadow-purple-500/20 active:scale-95 flex items-center gap-1.5 cursor-pointer"
                 >
-                  <div
-                    className={`text-xs ${rowDayClass} truncate pl-1 flex items-center gap-1 cursor-pointer`}
-                    onClick={() => onSelectDate(currentViewYear, currentViewMonth, day)}
-                    title="Klik untuk fokus ke tanggal ini"
-                  >
-                    <span>{day} {shortMonthNames[currentViewMonth]}</span>
-                    {isCurrentDay && <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />}
-                  </div>
+                  <Plus className="w-3.5 h-3.5" />
+                  + Indikator Kustom
+                </button>
+                <button
+                  onClick={onResetMonth}
+                  title="Kosongkan Catatan Jam Bulan Ini"
+                  className="p-1.5 rounded-xl border border-purple-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-500 hover:text-rose-600 transition-colors cursor-pointer bg-white/80 dark:bg-slate-800"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
 
-                  {Array.from({ length: 24 }).map((_, h) => {
-                    const catId = dayData[h];
-                    const cat = categoryMap[catId];
-                    const hourLabel = String(h).padStart(2, '0') + ':00';
+            {/* Pixel Matrix Table */}
+            <div className="overflow-x-auto rounded-2xl border border-purple-200 dark:border-purple-800/80 bg-white dark:bg-slate-900 shadow-xs">
+              <div className="min-w-[760px] p-4">
+                {/* Header Row: Jam 00 - 23 */}
+                <div className="grid grid-cols-[80px_repeat(24,_1fr)] gap-1 items-center pb-2 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-400 dark:text-slate-500 text-center">
+                  <div className="text-left font-bold pl-1">Hari \ Jam</div>
+                  {Array.from({ length: 24 }).map((_, h) => (
+                    <div key={`th-hour-${h}`} className="truncate" title={`Pukul ${String(h).padStart(2, '0')}:00`}>
+                      {String(h).padStart(2, '0')}
+                    </div>
+                  ))}
+                </div>
 
-                    let pixelHighlightBorder = '';
-                    if (isCurrentDay) pixelHighlightBorder = 'ring-1 ring-sky-500/60';
-                    else if (isSelectedDay) pixelHighlightBorder = 'ring-1 ring-indigo-500/60';
+                {/* Day Rows */}
+                <div className="space-y-1 mt-2">
+                  {Array.from({ length: daysInMonth }).map((_, dIdx) => {
+                    const day = dIdx + 1;
+                    const dateStr = `${currentViewYear}-${String(currentViewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const dayTracking = timeTracking[dateStr] || {};
 
-                    if (cat) {
-                      rowFilledHours++;
-                      return (
-                        <div
-                          key={`pixel-${day}-${h}`}
-                          onClick={() => onTogglePixel(dateStr, h)}
-                          title={`${day} ${shortMonthNames[currentViewMonth]} • ${hourLabel} : ${cat.name}`}
-                          className={`h-5 sm:h-6 w-full rounded-md cursor-pointer transition-transform hover:scale-110 active:scale-95 shadow-xs flex items-center justify-center text-[9px] ${pixelHighlightBorder}`}
-                          style={{ backgroundColor: cat.color }}
-                        />
-                      );
+                    const isCurrentDay =
+                      todayDate.getDate() === day &&
+                      todayDate.getMonth() === currentViewMonth &&
+                      todayDate.getFullYear() === currentViewYear;
+
+                    const isSelectedDay =
+                      selectedDate.getDate() === day &&
+                      selectedDate.getMonth() === currentViewMonth &&
+                      selectedDate.getFullYear() === currentViewYear;
+
+                    let rowStyle = 'hover:bg-purple-50/50 dark:hover:bg-slate-800/50 rounded-lg py-0.5 transition-colors';
+                    if (isSelectedDay) {
+                      rowStyle = 'bg-sky-50 dark:bg-sky-950/40 rounded-lg py-0.5 ring-1 ring-sky-300 dark:ring-sky-800';
                     }
 
                     return (
                       <div
-                        key={`pixel-${day}-${h}`}
-                        onClick={() => onTogglePixel(dateStr, h)}
-                        title={`${day} ${shortMonthNames[currentViewMonth]} • ${hourLabel} : Kosong (Klik untuk isi)`}
-                        className={`h-5 sm:h-6 w-full rounded-md cursor-pointer transition-all bg-slate-100 dark:bg-slate-800/80 hover:bg-indigo-200 dark:hover:bg-indigo-900/60 border border-slate-200/50 dark:border-slate-700/50 hover:border-indigo-400 ${pixelHighlightBorder}`}
-                      />
+                        key={`row-day-${day}`}
+                        className={`grid grid-cols-[80px_repeat(24,_1fr)] gap-1 items-center ${rowStyle}`}
+                      >
+                        {/* Day Label */}
+                        <div
+                          onClick={() => onSelectDate(currentViewYear, currentViewMonth, day)}
+                          className="text-xs font-semibold px-2 cursor-pointer flex items-center justify-between"
+                        >
+                          <span
+                            className={
+                              isCurrentDay
+                                ? 'font-black text-sky-600 dark:text-sky-400 flex items-center gap-1'
+                                : 'text-slate-700 dark:text-slate-300'
+                            }
+                          >
+                            Tgl {day}
+                          </span>
+                          {isCurrentDay && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-ping" />
+                          )}
+                        </div>
+
+                        {/* 24 Hours Pixels */}
+                        {Array.from({ length: 24 }).map((_, h) => {
+                          const catId = dayTracking[h];
+                          const cat = catId ? categoryMap[catId] : null;
+
+                          return (
+                            <button
+                              key={`pixel-${day}-${h}`}
+                              type="button"
+                              onClick={() => onTogglePixel(dateStr, h)}
+                              title={
+                                cat
+                                  ? `Tgl ${day}, Pukul ${String(h).padStart(2, '0')}:00 - ${cat.name}`
+                                  : `Tgl ${day}, Pukul ${String(h).padStart(2, '0')}:00 (Kosong)`
+                              }
+                              className="h-5 rounded-xs transition-all duration-150 cursor-pointer active:scale-90 flex items-center justify-center border border-black/5 dark:border-white/5"
+                              style={{
+                                backgroundColor: cat ? cat.color : undefined,
+                                opacity: cat ? 1 : 0.8
+                              }}
+                            >
+                              {!cat && (
+                                <span className="w-full h-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/70 dark:hover:bg-slate-700 rounded-xs block" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
                     );
                   })}
-
-                  <div className="text-[10px] font-semibold text-right pr-1 text-slate-500 dark:text-slate-400">
-                    {rowFilledHours > 0 ? (
-                      <span className="px-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold">
-                        {rowFilledHours}h
-                      </span>
-                    ) : (
-                      '-'
-                    )}
-                  </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+              </div>
+            </div>
 
-      {/* Summary Stacked Bar & Breakdown */}
-      <div className="bg-gradient-to-br from-violet-50/70 via-indigo-50/40 to-slate-50/60 dark:from-violet-950/30 dark:via-slate-900 dark:to-slate-950 rounded-2xl p-4 border border-violet-200/70 dark:border-violet-800/60 space-y-3">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-            <span>📊</span> Total Akumulasi Alokasi Waktu Bulan Ini:
-          </span>
-          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/80 text-indigo-800 dark:text-indigo-300">
-            {totalFilledHours} Jam Terekam
-          </span>
-        </div>
+            {/* Visualisasi Alokasi Waktu Bulan Ini */}
+            <div className="bg-white/90 dark:bg-slate-900/90 rounded-2xl p-4 border border-purple-200 dark:border-purple-800/80 space-y-2.5 shadow-xs">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-100">
+                <span>Alokasi Waktu Bulan Ini</span>
+                <span className="text-purple-600 dark:text-purple-400 font-extrabold">{totalFilledHours} Jam Total</span>
+              </div>
 
-        <div className="w-full h-3 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-800 flex border border-slate-200/60 dark:border-slate-700/60 shadow-inner">
-          {timeCategories.map(cat => {
-            const count = counts[cat.id] || 0;
-            if (count > 0 && totalFilledHours > 0) {
-              const pct = (count / totalFilledHours) * 100;
-              return (
-                <div
-                  key={`stacked-${cat.id}`}
-                  style={{ width: `${pct}%`, backgroundColor: cat.color }}
-                  title={`${cat.name}: ${count} Jam (${Math.round(pct)}%)`}
-                  className="h-full transition-all duration-500 first:rounded-l-full last:rounded-r-full"
-                />
-              );
-            }
-            return null;
-          })}
-        </div>
+              {/* Progress bar multi-warna stacked */}
+              <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
+                {timeCategories.map(cat => {
+                  const count = counts[cat.id] || 0;
+                  if (count > 0 && totalFilledHours > 0) {
+                    const pct = (count / totalFilledHours) * 100;
+                    return (
+                      <div
+                        key={`stacked-${cat.id}`}
+                        style={{ width: `${pct}%`, backgroundColor: cat.color }}
+                        title={`${cat.name}: ${count} Jam (${Math.round(pct)}%)`}
+                        className="h-full transition-all duration-500 first:rounded-l-full last:rounded-r-full"
+                      />
+                    );
+                  }
+                  return null;
+                })}
+              </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 pt-1 text-xs font-body text-slate-600 dark:text-slate-300">
-          {totalFilledHours === 0 ? (
-            <span className="italic text-slate-400 text-xs">
-              Belum ada alokasi pixel waktu yang diwarnai di bulan ini.
-            </span>
-          ) : (
-            timeCategories.map(cat => {
-              const count = counts[cat.id] || 0;
-              if (count === 0) return null;
-              return (
-                <div
-                  key={`badge-cat-${cat.id}`}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs"
-                >
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
-                  <span>{cat.emoji || '⏱️'} {cat.name}:</span>
-                  <span className="font-extrabold text-slate-900 dark:text-white">{count} Jam</span>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs font-body text-slate-600 dark:text-slate-300">
+                {totalFilledHours === 0 ? (
+                  <span className="italic text-slate-400 text-xs">
+                    Belum ada alokasi pixel waktu yang diwarnai di bulan ini.
+                  </span>
+                ) : (
+                  timeCategories.map(cat => {
+                    const count = counts[cat.id] || 0;
+                    if (count === 0) return null;
+                    return (
+                      <div
+                        key={`badge-cat-${cat.id}`}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs"
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                        <span>{cat.emoji || '⏱️'} {cat.name}:</span>
+                        <span className="font-extrabold text-slate-900 dark:text-white">{count} Jam</span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 };

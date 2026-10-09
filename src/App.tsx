@@ -460,12 +460,24 @@ export default function App() {
     setDailyTaskToEdit(null);
   };
 
-  // Scheduled Tasks actions
+  // Scheduled Tasks actions: otomatis berulang ke periode berikutnya saat dicentang jika tugas berulang
   const handleToggleScheduledTask = (id: string) => {
     let completedNow = false;
+    let willAdvance = false;
+    let nextDateStr = '';
     const updated = appState.scheduledTasks.map(t => {
       if (t.id === id) {
         completedNow = !t.completed;
+        // Jika dicentang selesai dan memiliki siklus berulang, otomatis majukan ke periode berikutnya!
+        if (completedNow && t.repeat && t.repeat !== 'none') {
+          willAdvance = true;
+          nextDateStr = advanceDeadlineDate(t.deadline, t.repeat);
+          return {
+            ...t,
+            deadline: nextDateStr,
+            completed: false
+          };
+        }
         return { ...t, completed: completedNow };
       }
       return t;
@@ -474,7 +486,11 @@ export default function App() {
     if (completedNow) {
       triggerConfetti(canvasRef.current);
       playCelebrationSound(appState.soundEnabled);
-      showToast('Catatan terjadwal selesai!', 'success');
+      if (willAdvance) {
+        showToast(`Catatan selesai & otomatis dijadwalkan ke periode berikutnya (${nextDateStr})!`, 'success');
+      } else {
+        showToast('Catatan terjadwal selesai!', 'success');
+      }
     } else {
       playClickSound(appState.soundEnabled);
     }
@@ -832,6 +848,23 @@ export default function App() {
           />
         </motion.div>
 
+        {/* Visualisasi Grafik Analytics: Doughnut & Pie Chart Habit & Time Tracker (Di Atas Kalender) */}
+        <motion.div
+          initial={{ opacity: 0, y: 22 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-30px' }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <AnalyticsSection
+            habits={appState.habits}
+            timeCategories={appState.timeCategories}
+            timeTracking={appState.timeTracking}
+            currentViewYear={currentViewYear}
+            currentViewMonth={currentViewMonth}
+            selectedDate={selectedDate}
+          />
+        </motion.div>
+
         {/* Calendar Section + Summary Cards */}
         <motion.div
           initial={{ opacity: 0, y: 22 }}
@@ -850,6 +883,8 @@ export default function App() {
             onSelectDate={handleSelectDate}
             onNavigateMonth={handleNavigateMonth}
             onGoToToday={handleGoToToday}
+            onToggleDailyTask={handleToggleDailyTask}
+            onToggleScheduledTask={handleToggleScheduledTask}
             onOpenJournalTab={() => {
               const el = document.getElementById('journal-section');
               if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -954,23 +989,6 @@ export default function App() {
               setIsCategoryModalOpen(true);
             }}
             onSelectDate={handleSelectDate}
-          />
-        </motion.div>
-
-        {/* Visualisasi Grafik Analytics: Doughnut & Pie Chart Habit & Time Tracker */}
-        <motion.div
-          initial={{ opacity: 0, y: 22 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-30px' }}
-          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <AnalyticsSection
-            habits={appState.habits}
-            timeCategories={appState.timeCategories}
-            timeTracking={appState.timeTracking}
-            currentViewYear={currentViewYear}
-            currentViewMonth={currentViewMonth}
-            selectedDate={selectedDate}
           />
         </motion.div>
 

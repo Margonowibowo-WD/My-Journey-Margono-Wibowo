@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Zap, Target, Clock, Play, Pause, RotateCcw, Maximize2, Minimize2, Palette } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Zap, Target, Clock, Play, Pause, RotateCcw, Maximize2, Minimize2, Palette, Bell, CheckCircle2, ClipboardList, Check } from 'lucide-react';
 import { DailyTask, ScheduledTask } from '../types';
 import { formatDateKey } from '../utils/initialData';
+import { calculateDaysRemaining } from './TasksSection';
 
 export type FocusThemeKey = 'red' | 'blue' | 'emerald' | 'purple' | 'amber';
 
@@ -171,6 +172,8 @@ interface CalendarSectionProps {
   onOpenJournalTab: () => void;
   onCompleteFocusSession?: () => void;
   onPlayClickSound?: () => void;
+  onToggleDailyTask?: (id: string) => void;
+  onToggleScheduledTask?: (id: string) => void;
 }
 
 export const CalendarSection: React.FC<CalendarSectionProps> = ({
@@ -186,7 +189,9 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
   onGoToToday,
   onOpenJournalTab,
   onCompleteFocusSession,
-  onPlayClickSound
+  onPlayClickSound,
+  onToggleDailyTask,
+  onToggleScheduledTask
 }) => {
   const [focusMinutes, setFocusMinutes] = useState<number>(25);
   const [secondsRemaining, setSecondsRemaining] = useState<number>(25 * 60);
@@ -201,6 +206,107 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
     }
     return 'red';
   });
+
+  const [hoveredCellDate, setHoveredCellDate] = useState<string | null>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleCellMouseEnter = (dateStr: string) => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setHoveredCellDate(dateStr);
+  };
+
+  const handleCellMouseLeave = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredCellDate(null);
+    }, 250);
+  };
+
+  const handlePopupMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+  };
+
+  const handlePopupMouseLeave = () => {
+    handleCellMouseLeave();
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    };
+  }, []);
+
+  const repeatDisplayMap: Record<string, string> = {
+    daily: 'Harian',
+    weekly: 'Mingguan',
+    monthly: 'Bulanan',
+    '3months': 'Per 3 Bulan',
+    '6months': 'Per 6 Bulan',
+    yearly: 'Tahunan'
+  };
+
+  const getDeadlineStatus = (deadlineStr: string) => {
+    const daysLeft = calculateDaysRemaining(deadlineStr);
+    if (daysLeft <= 0) {
+      return {
+        daysLeft,
+        badgeText: daysLeft === 0 ? 'Hari Ini!' : `Terlewat ${Math.abs(daysLeft)} Hari`,
+        badgeStyle: 'bg-red-600 text-white border border-red-300 shadow-[0_0_10px_rgba(239,68,68,0.85)] animate-pulse',
+        cardStyle: 'border-2 border-red-500 bg-red-950/80 hover:bg-red-900/70 shadow-md shadow-red-950/50',
+        titleColor: 'text-red-100 font-bold',
+        chkStyle: 'border-red-400 hover:border-red-300 hover:bg-red-500/25 text-red-300',
+        indicatorIcon: '🚨'
+      };
+    }
+    if (daysLeft <= 5) {
+      return {
+        daysLeft,
+        badgeText: `${daysLeft} Hari (Mepet)`,
+        badgeStyle: 'bg-rose-600 text-white border border-rose-300 shadow-[0_0_10px_rgba(244,63,94,0.7)]',
+        cardStyle: 'border-2 border-rose-500 bg-rose-950/70 hover:bg-rose-900/60 shadow-md shadow-rose-950/50',
+        titleColor: 'text-rose-100 font-bold',
+        chkStyle: 'border-rose-400 hover:border-rose-300 hover:bg-rose-500/25 text-rose-300',
+        indicatorIcon: '🔥'
+      };
+    }
+    if (daysLeft <= 10) {
+      return {
+        daysLeft,
+        badgeText: `${daysLeft} Hari (Segera)`,
+        badgeStyle: 'bg-amber-500 text-white border border-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.7)]',
+        cardStyle: 'border-2 border-amber-500 bg-amber-950/70 hover:bg-amber-900/60 shadow-md shadow-amber-950/50',
+        titleColor: 'text-amber-100 font-bold',
+        chkStyle: 'border-amber-400 hover:border-amber-300 hover:bg-amber-500/25 text-amber-300',
+        indicatorIcon: '⚡'
+      };
+    }
+    if (daysLeft <= 15) {
+      return {
+        daysLeft,
+        badgeText: `${daysLeft} Hari (Siap2)`,
+        badgeStyle: 'bg-emerald-600 text-white border border-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.7)]',
+        cardStyle: 'border-2 border-emerald-500 bg-emerald-950/70 hover:bg-emerald-900/60 shadow-md shadow-emerald-950/50',
+        titleColor: 'text-emerald-100 font-bold',
+        chkStyle: 'border-emerald-400 hover:border-emerald-300 hover:bg-emerald-500/25 text-emerald-300',
+        indicatorIcon: '🌱'
+      };
+    }
+    return {
+      daysLeft,
+      badgeText: `${daysLeft} Hari (Masih Lama)`,
+      badgeStyle: 'bg-sky-600 text-white border border-sky-300 shadow-[0_0_10px_rgba(14,165,233,0.7)]',
+      cardStyle: 'border-2 border-sky-500 bg-sky-950/70 hover:bg-sky-900/60 shadow-md shadow-sky-950/50',
+      titleColor: 'text-sky-100 font-semibold',
+      chkStyle: 'border-sky-400 hover:border-sky-300 hover:bg-sky-500/25 text-sky-300',
+      indicatorIcon: '📅'
+    };
+  };
 
   const handleSelectTheme = (themeKey: FocusThemeKey) => {
     if (onPlayClickSound) onPlayClickSound();
@@ -318,23 +424,20 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* Kalender Bulanan */}
-      <section className="lg:col-span-8 bg-gradient-to-br from-sky-100/90 via-blue-50/80 to-sky-50/60 dark:from-sky-950/60 dark:via-slate-900 dark:to-blue-950/40 rounded-3xl p-5 sm:p-7 shadow-sm border-2 border-sky-300/80 dark:border-sky-800/80 flex flex-col justify-between">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b-2 border-sky-200/80 dark:border-sky-900/60">
+      <section className="lg:col-span-8 bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-7 shadow-sm border border-slate-200/90 dark:border-slate-800 flex flex-col justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <span className="w-1.5 h-11 rounded-full bg-sky-500 shrink-0" />
-            <div className="w-11 h-11 rounded-2xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+            <span className="w-1.5 h-10 rounded-full bg-cyan-500 dark:bg-cyan-400 shrink-0" />
+            <div className="w-10 h-10 rounded-2xl bg-cyan-50 dark:bg-cyan-950/70 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0">
               <CalendarIcon className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-sky-600 dark:text-sky-400">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-600 dark:text-cyan-400">
                 Agenda & Kalender
               </p>
               <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-tight">
-                Kalender Bulanan <span className="text-sky-600 dark:text-sky-400">({monthNames[currentViewMonth]} {currentViewYear})</span>
+                Kalender Bulanan <span className="text-slate-500 dark:text-slate-400 font-semibold">({monthNames[currentViewMonth]} {currentViewYear})</span>
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-body mt-0.5">
-                Pilih tanggal untuk melihat rincian tugas spesifik
-              </p>
             </div>
           </div>
 
@@ -348,7 +451,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
             </button>
             <button
               onClick={onGoToToday}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-900/60 transition-all active:scale-95 border border-sky-200 dark:border-sky-800 cursor-pointer"
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-95 border border-slate-200 dark:border-slate-700 cursor-pointer"
             >
               Hari Ini
             </button>
@@ -362,15 +465,15 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
           </div>
         </div>
 
-        {/* Hari Header */}
-        <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center py-3 text-[11px] sm:text-xs font-bold uppercase tracking-wider">
-          <span className="text-rose-600 dark:text-rose-400">Min</span>
-          <span className="text-emerald-600 dark:text-emerald-400">Sen</span>
-          <span className="text-emerald-600 dark:text-emerald-400">Sel</span>
-          <span className="text-emerald-600 dark:text-emerald-400">Rab</span>
-          <span className="text-emerald-600 dark:text-emerald-400">Kam</span>
-          <span className="text-emerald-600 dark:text-emerald-400">Jum</span>
-          <span className="text-blue-600 dark:text-blue-400">Sab</span>
+        {/* Hari Header - Baris Hari yang Rapi, Bersih & Elegan */}
+        <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center py-2.5 text-[11px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 mb-1.5">
+          <span className="text-rose-500/90 dark:text-rose-400/90 font-bold">Min</span>
+          <span>Sen</span>
+          <span>Sel</span>
+          <span>Rab</span>
+          <span>Kam</span>
+          <span>Jum</span>
+          <span className="text-slate-600 dark:text-slate-400 font-medium">Sab</span>
         </div>
 
         {/* Grid Kalender */}
@@ -381,9 +484,9 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
             return (
               <div
                 key={`prev-${dayNum}`}
-                className="min-h-[64px] sm:min-h-[74px] p-1 sm:p-2 rounded-2xl bg-slate-50/50 dark:bg-slate-900/30 border border-slate-100/60 dark:border-slate-800/40 text-slate-300 dark:text-slate-700 text-xs select-none"
+                className="min-h-[64px] sm:min-h-[74px] p-1.5 sm:p-2 rounded-2xl bg-slate-50/20 dark:bg-slate-900/10 border border-transparent text-slate-300 dark:text-slate-700 text-xs select-none"
               >
-                <span>{dayNum}</span>
+                <span className="font-bold">{dayNum}</span>
               </div>
             );
           })}
@@ -401,38 +504,45 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
             const isNationalHoliday = !!holidayName;
 
             const myDailyList = dailyTasks.filter(t => t.dateStr === cellDateStr);
-            const pendingMyDaily = myDailyList.filter(t => !t.completed).length;
-            const hasPendingTasks = pendingMyDaily > 0;
+            const pendingMyDaily = myDailyList.filter(t => !t.completed);
 
-            let glowClass = '';
-            if (isToday) {
-              if (dayOfWeek === 0 || isNationalHoliday) glowClass = ' glow-sunday';
-              else if (dayOfWeek === 6) glowClass = ' glow-saturday';
-              else glowClass = ' glow-weekday';
-            }
+            // Catatan Jangan Sampai Lupa yang jatuh tempo pada tanggal ini
+            const myScheduledList = scheduledTasks.filter(t => t.deadline === cellDateStr);
+            const pendingScheduled = myScheduledList.filter(t => !t.completed);
 
-            let cellClasses = 'min-h-[64px] sm:min-h-[74px] p-1.5 sm:p-2 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ';
-            if (hasPendingTasks && !isSelected) {
-              cellClasses += ' bg-white dark:bg-slate-900 pending-tasks-glow ';
-            } else if (isSelected) {
-              cellClasses += ' bg-sky-600 text-white border-sky-600 shadow-md font-bold ';
-            } else if (isToday) {
-              cellClasses += ' bg-white dark:bg-slate-900 border-2 font-bold' + glowClass;
+            const totalPending = pendingMyDaily.length + pendingScheduled.length;
+            const hasPendingTasks = totalPending > 0;
+            const hasAnyTasksOnDate = myDailyList.length > 0 || myScheduledList.length > 0;
+            const isHovered = hoveredCellDate === cellDateStr;
+
+            let cellClasses = 'relative min-h-[64px] sm:min-h-[74px] p-1.5 sm:p-2 rounded-2xl transition-all cursor-pointer flex flex-col justify-between ';
+            if (isHovered) {
+              cellClasses += ' z-30 shadow-md ring-2 ring-cyan-400/80 dark:ring-cyan-500/80 ';
             } else {
-              cellClasses += ' bg-white dark:bg-slate-800/80 border-slate-200/80 dark:border-slate-800 hover:border-sky-300 dark:hover:border-sky-600 ';
+              cellClasses += ' z-0 ';
             }
 
+            // Desain Warna Kalender:
+            // 1. Hari Aktif: Biru Laut Menyala Kedip (Gradient Cyan/Sky/Blue glowing & pulsing)
+            // 2. Hari Ini (belum dipilih): Aksen Sky elegan dengan badge Hari Ini
+            // 3. Tanggal Lainnya: Border netral bersih (garis pinggir merah pada tugas belum selesai dihilangkan)
+            if (isSelected) {
+              cellClasses += ' bg-gradient-to-br from-cyan-500 via-sky-500 to-blue-600 text-white border-2 border-cyan-200 shadow-[0_0_22px_rgba(6,182,212,0.95)] ring-2 ring-cyan-300 animate-pulse ';
+            } else if (isToday) {
+              cellClasses += ' bg-sky-50/50 dark:bg-sky-950/20 border-2 border-sky-500/80 dark:border-sky-400/80 shadow-xs ';
+            } else {
+              // Garis pinggir merah pada tugas belum selesai dihilangkan sesuai permintaan user
+              cellClasses += ' bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-100/70 dark:hover:bg-slate-800/80 ';
+            }
+
+            // Angka Pada Tanggal: Dibuat BOLD semua sesuai permintaan user
             let dayColorClass = '';
             if (isSelected) {
-              dayColorClass = 'text-white';
-            } else if (hasPendingTasks) {
-              dayColorClass = 'text-rose-600 dark:text-rose-400 font-extrabold';
+              dayColorClass = 'text-white font-black text-xs sm:text-sm drop-shadow-md';
             } else if (dayOfWeek === 0 || isNationalHoliday) {
-              dayColorClass = 'text-rose-600 dark:text-rose-400 font-extrabold';
-            } else if (dayOfWeek === 6) {
-              dayColorClass = 'text-blue-600 dark:text-blue-400 font-extrabold';
+              dayColorClass = 'text-rose-600 dark:text-rose-400 font-extrabold text-xs sm:text-sm';
             } else {
-              dayColorClass = 'text-emerald-600 dark:text-emerald-400 font-semibold';
+              dayColorClass = 'text-slate-800 dark:text-slate-100 font-bold text-xs sm:text-sm';
             }
 
             return (
@@ -440,42 +550,249 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                 key={`curr-${day}`}
                 className={cellClasses}
                 onClick={() => onSelectDate(currentViewYear, currentViewMonth, day)}
-                title={holidayName ? `Libur: ${holidayName}` : undefined}
+                onMouseEnter={() => {
+                  // Tugas yang sudah selesai / centang hijau TIDAK PERLU menampilkan popup lagi
+                  if (hasPendingTasks) handleCellMouseEnter(cellDateStr);
+                }}
+                onMouseLeave={handleCellMouseLeave}
               >
+                {/* Baris Atas: Tanggal (BOLD) & Badge Hari Ini */}
                 <div className="flex items-center justify-between text-xs sm:text-sm">
                   <span className={dayColorClass}>{day}</span>
                   {isToday && !isSelected && (
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-sky-500 text-white shadow-xs">
+                    <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-cyan-500 text-white shadow-2xs">
                       Hari Ini
+                    </span>
+                  )}
+                  {isSelected && (
+                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-white/25 text-white border border-white/40 shadow-xs uppercase tracking-wider">
+                      Aktif
                     </span>
                   )}
                 </div>
 
+                {/* Baris Bawah: Indikator Libur / Ikon Tugas Belum Selesai Kedip2 Menyala / Ikon Centang Hijau Besar */}
                 <div className="mt-1">
-                  {isNationalHoliday && !isSelected && (
-                    <p className="text-[9px] font-semibold text-rose-500 truncate" title={holidayName}>
+                  {isNationalHoliday && (
+                    <p className={`text-[9px] font-bold truncate ${isSelected ? 'text-cyan-100' : 'text-rose-500 dark:text-rose-400'}`} title={holidayName}>
                       {holidayName}
                     </p>
                   )}
 
-                  {myDailyList.length > 0 && (
-                    <div className="flex items-center gap-1 flex-wrap justify-end mt-1">
-                      {pendingMyDaily === 0 ? (
-                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md bg-emerald-500 text-white text-[10px] font-extrabold shadow-xs">
-                          ✓ Selesai
-                        </span>
-                      ) : (
-                        <span
-                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-rose-600 text-white text-[10px] font-black shadow-xs animate-badge-blink"
-                          title={`${pendingMyDaily} Tugas belum tuntas`}
-                        >
-                          <span>⚠️</span>
-                          <span>{pendingMyDaily} Belum</span>
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1 flex-wrap justify-end mt-1">
+                    {/* 1. IKON TUGAS HARIAN BELUM SELESAI: KEDIP MENYALA HANYA PADA HARI INI */}
+                    {pendingMyDaily.length > 0 && (
+                      <span
+                        className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-black shadow-md ${
+                          isToday
+                            ? isSelected
+                              ? 'animate-pulse bg-white text-cyan-950 ring-2 ring-white shadow-[0_0_10px_rgba(255,255,255,0.9)]'
+                              : 'animate-pulse bg-rose-500 text-white shadow-[0_0_10px_rgba(244,63,94,0.9)] ring-1 ring-rose-300 dark:ring-rose-400'
+                            : isSelected
+                            ? 'bg-white text-cyan-950 ring-1 ring-white/60 shadow-xs'
+                            : 'bg-rose-500/90 text-white shadow-xs'
+                        }`}
+                        title={`${pendingMyDaily.length} Tugas Harian Belum Selesai`}
+                      >
+                        <ClipboardList className={`w-2.5 h-2.5 ${isToday ? 'animate-bounce' : ''}`} />
+                        <span>{pendingMyDaily.length}</span>
+                      </span>
+                    )}
+
+                    {/* 2. IKON CATATAN JANGAN SAMPAI LUPA: KEDIP MENYALA HANYA PADA HARI INI JIKA ADA BELUM SELESAI */}
+                    {myScheduledList.length > 0 && (
+                      <span
+                        className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-black shadow-md ${
+                          pendingScheduled.length > 0
+                            ? isToday
+                              ? isSelected
+                                ? 'animate-pulse bg-amber-300 text-amber-950 ring-2 ring-amber-200 shadow-[0_0_10px_rgba(251,191,36,0.9)]'
+                                : 'animate-pulse bg-amber-500 text-white shadow-[0_0_10px_rgba(245,158,11,0.9)] ring-1 ring-amber-300 dark:ring-amber-400'
+                              : isSelected
+                              ? 'bg-amber-300 text-amber-950 ring-1 ring-amber-200/60 shadow-xs'
+                              : 'bg-amber-500/90 text-white shadow-xs'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700 font-medium'
+                        }`}
+                        title={`${myScheduledList.length} Catatan Jangan Sampai Lupa (${pendingScheduled.length} belum)`}
+                      >
+                        <Bell className={`w-2.5 h-2.5 ${pendingScheduled.length > 0 && isToday ? 'animate-bounce' : ''}`} />
+                        <span>{myScheduledList.length}</span>
+                      </span>
+                    )}
+
+                    {/* 3. IKON CENTANG HIJAU BESAR JIKA SEMUA SELESAI */}
+                    {myDailyList.length > 0 && pendingMyDaily.length === 0 && pendingScheduled.length === 0 && (
+                      <span
+                        className={`inline-flex items-center justify-center p-0.5 rounded-full drop-shadow-xs transition-transform hover:scale-110 ${
+                          isSelected ? 'text-white' : 'text-emerald-500 dark:text-emerald-400'
+                        }`}
+                        title="Semua agenda pada tanggal ini telah selesai tuntas!"
+                      >
+                        <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" />
+                      </span>
+                    )}
+                  </div>
                 </div>
+
+                {/* POPUP INTERAKTIF: HANYA MUNCUL JIKA ADA TUGAS BELUM SELESAI (TIDAK MUNCUL JIKA TUNTAS) */}
+                {isHovered && hasPendingTasks && (
+                  <div
+                    onMouseEnter={handlePopupMouseEnter}
+                    onMouseLeave={handlePopupMouseLeave}
+                    onClick={(e) => e.stopPropagation()}
+                    className={`absolute z-50 pointer-events-auto cursor-default w-76 sm:w-88 md:w-96 p-3.5 sm:p-4 rounded-3xl bg-slate-950/95 text-white backdrop-blur-2xl shadow-2xl border border-slate-700/80 animate-pop-check text-left ${
+                      day <= 7 ? 'top-full mt-2' : 'bottom-full mb-2'
+                    } ${
+                      dayOfWeek <= 1
+                        ? 'left-0'
+                        : dayOfWeek >= 5
+                        ? 'right-0'
+                        : 'left-1/2 -translate-x-1/2'
+                    }`}
+                  >
+                    {/* Header Popup Tanggal */}
+                    <div className="flex items-center justify-between pb-2.5 border-b border-slate-700/80 gap-2">
+                      <div className="min-w-0">
+                        <p className="text-xs sm:text-sm font-black text-sky-400 flex items-center gap-1.5 truncate">
+                          <span>📅</span>
+                          <span>{dayNamesFull[dayOfWeek]}, {day} {shortMonthNames[currentViewMonth]} {currentViewYear}</span>
+                        </p>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full bg-rose-500/25 text-rose-300 border border-rose-500/40 text-[10px] font-black shrink-0 flex items-center gap-1 shadow-sm">
+                        <span>⚠️</span>
+                        <span>{totalPending} Belum Selesai</span>
+                      </span>
+                    </div>
+
+                    {/* Notifikasi Libur Nasional jika ada */}
+                    {isNationalHoliday && (
+                      <div className="mt-2 px-2.5 py-1.5 rounded-xl bg-rose-950/80 border border-rose-800/80 text-rose-300 text-xs font-semibold flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping shrink-0" />
+                        <span>Libur Nasional: {holidayName}</span>
+                      </div>
+                    )}
+
+                    {/* ========================================================
+                        TUGAS HARIAN (Tema Biru Laut / Cyan)
+                       ======================================================== */}
+                    {pendingMyDaily.length > 0 && (
+                      <div className="mt-3 p-3 rounded-2xl bg-gradient-to-br from-sky-950/90 via-slate-900 to-cyan-950/90 border-2 border-cyan-500/60 shadow-lg">
+                        <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-cyan-500/30">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 flex items-center justify-center shrink-0">
+                              <ClipboardList className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                              <p className="text-[11px] font-black uppercase tracking-wider text-cyan-300 leading-none">
+                                Tugas Harian
+                              </p>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/25 text-cyan-200 border border-cyan-400/40 shrink-0">
+                            {pendingMyDaily.length} Belum
+                          </span>
+                        </div>
+                        <div className="space-y-1.5 max-h-40 overflow-y-auto pr-0.5">
+                          {pendingMyDaily.map((task) => (
+                            <div
+                              key={task.id}
+                              className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-cyan-500/30 hover:border-cyan-400/70 flex items-center justify-between gap-2 text-xs transition-colors group"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onToggleDailyTask) onToggleDailyTask(task.id);
+                                  }}
+                                  className="w-5 h-5 rounded-md border-2 border-cyan-400/70 hover:border-cyan-300 hover:bg-cyan-500/25 text-cyan-300 flex items-center justify-center transition-all cursor-pointer active:scale-90 shrink-0 group/chk"
+                                  title="Centang selesai (langsung hilang dari daftar)"
+                                >
+                                  <Check className="w-3.5 h-3.5 opacity-0 group-hover/chk:opacity-100 transition-opacity" />
+                                </button>
+                                <span className="font-semibold text-slate-100 leading-snug line-clamp-2">
+                                  {task.title}
+                                </span>
+                              </div>
+                              <span className="text-[9px] text-cyan-300 font-bold opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                Tuntas ✓
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ========================================================
+                        TUGAS TERJADWAL & CATATAN (Warna Sesuai Progres Deadline)
+                       ======================================================== */}
+                    {pendingScheduled.length > 0 && (
+                      <div className="mt-2.5 p-3 rounded-2xl bg-gradient-to-br from-slate-900/95 via-slate-950 to-slate-900/95 border-2 border-slate-700/80 shadow-lg">
+                        <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-700/80">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-400/50 flex items-center justify-center shrink-0">
+                              <Bell className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                              <p className="text-[11px] font-black uppercase tracking-wider text-amber-300 leading-none">
+                                Tugas Terjadwal & Catatan
+                              </p>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-200 border border-amber-400/40 shrink-0">
+                            {pendingScheduled.length} Belum
+                          </span>
+                        </div>
+                        <div className="space-y-2 max-h-48 overflow-y-auto pr-0.5">
+                          {pendingScheduled.map((task) => {
+                            const status = getDeadlineStatus(task.deadline);
+
+                            return (
+                              <div
+                                key={task.id}
+                                className={`p-2.5 rounded-xl ${status.cardStyle} flex flex-col gap-1.5 text-xs transition-colors group`}
+                              >
+                                <div className="flex items-center justify-between gap-1.5">
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onToggleScheduledTask) onToggleScheduledTask(task.id);
+                                      }}
+                                      className={`w-5 h-5 rounded-md border-2 ${status.chkStyle} flex items-center justify-center transition-all cursor-pointer active:scale-90 shrink-0 group/chk`}
+                                      title="Centang selesai (langsung hilang & otomatis berulang ke periode berikutnya jika diset berulang)"
+                                    >
+                                      <Check className="w-3.5 h-3.5 opacity-0 group-hover/chk:opacity-100 transition-opacity" />
+                                    </button>
+                                    <span className={`${status.titleColor} leading-snug line-clamp-2 flex items-center gap-1.5`}>
+                                      <span className="shrink-0">{status.indicatorIcon}</span>
+                                      <span>{task.title}</span>
+                                    </span>
+                                  </div>
+                                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ${status.badgeStyle}`}>
+                                    {status.badgeText}
+                                  </span>
+                                </div>
+                                {task.repeat && task.repeat !== 'none' && (
+                                  <div className="text-[10px] text-white/90 font-medium flex items-center gap-1 pl-7">
+                                    <span>🔁</span>
+                                    <span>Otomatis Berulang: {repeatDisplayMap[task.repeat] || task.repeat}</span>
+                                  </div>
+                                )}
+                                {task.notes && (
+                                  <div className="text-[11px] text-slate-200 bg-black/40 p-1.5 rounded-lg border border-white/10 mt-0.5 ml-7">
+                                    <span className="font-semibold text-slate-300">Ket:</span> {task.notes}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}

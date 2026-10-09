@@ -329,59 +329,14 @@ export const DailyTaskModal: React.FC<{
               placeholder="Tuliskan agenda pribadi hari ini..."
             />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Tanggal Pelaksanaan:</label>
-              <input
-                type="date"
-                value={dateStr}
-                onChange={e => setDateStr(e.target.value)}
-                className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-sky-500 focus:outline-none"
-              />
-            </div>
           <div>
-            <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-              Tingkat Prioritas (3 Warna):
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => setPriority('high')}
-                className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                  priority === 'high'
-                    ? 'bg-red-600 text-white border-red-600 shadow-sm ring-2 ring-red-400/40'
-                    : 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-900/60 hover:bg-red-100'
-                }`}
-              >
-                <span className="w-2.5 h-2.5 rounded-full bg-red-400 border border-white shrink-0" />
-                <span>Merah (Tinggi)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setPriority('medium')}
-                className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                  priority === 'medium'
-                    ? 'bg-amber-500 text-white border-amber-500 shadow-sm ring-2 ring-amber-400/40'
-                    : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/60 hover:bg-amber-100'
-                }`}
-              >
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 border border-white shrink-0" />
-                <span>Kuning (Sedang)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setPriority('low')}
-                className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                  priority === 'low'
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-400/40'
-                    : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900/60 hover:bg-blue-100'
-                }`}
-              >
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-400 border border-white shrink-0" />
-                <span>Biru (Rendah)</span>
-              </button>
-            </div>
-          </div>
+            <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Tanggal Pelaksanaan:</label>
+            <input
+              type="date"
+              value={dateStr}
+              onChange={e => setDateStr(e.target.value)}
+              className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-sky-500 focus:outline-none"
+            />
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 pt-2">
@@ -466,7 +421,7 @@ export const HabitModal: React.FC<{
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="space-y-3.5 text-xs">
+        <div className="space-y-4 text-xs">
           <div>
             <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Nama Kebiasaan Baik:</label>
             <input

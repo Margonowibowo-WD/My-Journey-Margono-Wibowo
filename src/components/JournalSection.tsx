@@ -11,6 +11,7 @@ interface JournalSectionProps {
   onSaveReflection: (dateStr: string, data: DayReflection) => void;
   onOpenCustomAffirmation: () => void;
   onOpenBackupModal: () => void;
+  forceExpanded?: boolean;
 }
 
 export const JournalSection: React.FC<JournalSectionProps> = ({
@@ -19,10 +20,17 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
   affirmations,
   onSaveReflection,
   onOpenCustomAffirmation,
-  onOpenBackupModal
+  onOpenBackupModal,
+  forceExpanded
 }) => {
   const [activeTab, setActiveTab] = useState<'journal' | 'vision'>('journal');
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(forceExpanded !== undefined ? !forceExpanded : true);
+
+  React.useEffect(() => {
+    if (forceExpanded !== undefined) {
+      setIsCollapsed(!forceExpanded);
+    }
+  }, [forceExpanded]);
   const selectedStr = formatDateKey(selectedDate);
   const currentReflection = reflections[selectedStr] || {
     impianTerbesar: '',
@@ -67,16 +75,16 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
   const dateFormattedText = `${selectedDate.getDate()} ${shortMonthNames[selectedDate.getMonth()]} ${selectedDate.getFullYear()}`;
 
   return (
-    <section className="bg-gradient-to-br from-rose-50/30 via-white to-amber-50/20 dark:from-slate-900 dark:via-slate-900 dark:to-rose-950/15 rounded-3xl shadow-sm border border-rose-100/70 dark:border-slate-800 overflow-hidden">
+    <section className="bg-gradient-to-br from-sky-100/90 via-blue-50/80 to-cyan-50/70 dark:from-sky-950/60 dark:via-slate-900 dark:to-blue-950/40 rounded-3xl shadow-sm border-2 border-sky-300 dark:border-sky-700/80 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-sky-400 dark:hover:border-sky-600">
       <div className="px-5 sm:px-7 pt-5 sm:pt-6 pb-4">
-        <div className="flex items-center justify-between gap-3 pb-3 border-b-2 border-slate-100 dark:border-slate-800">
+        <div className="flex items-center justify-between gap-3 pb-3 border-b-2 border-sky-200/80 dark:border-sky-900/60">
           <div className="flex items-center gap-3 min-w-0">
-            <span className="w-1.5 h-10 rounded-full bg-rose-500 shrink-0" />
-            <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 text-xl">
-              🗓️
+            <span className="w-1.5 h-10 rounded-full bg-sky-500 shrink-0" />
+            <div className="w-10 h-10 rounded-2xl bg-sky-500 text-white flex items-center justify-center shrink-0 text-xl shadow-xs">
+              🌟
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-600 dark:text-rose-400">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-sky-800 dark:text-sky-300">
                 Refleksi & Afirmasi
               </p>
               <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-tight truncate">
@@ -86,7 +94,7 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-rose-100/80 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800 shrink-0">
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-sky-100/90 dark:bg-sky-950/90 text-sky-800 dark:text-sky-300 border border-sky-300/80 dark:border-sky-700 shrink-0">
               {dateFormattedText}
             </span>
 
@@ -94,12 +102,12 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
             <button
               type="button"
               onClick={() => setIsCollapsed(prev => !prev)}
-              className="px-3.5 py-1.5 rounded-xl bg-white/90 hover:bg-white dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 cursor-pointer shadow-xs active:scale-95"
+              className="px-3.5 py-1.5 rounded-xl bg-white/90 hover:bg-white dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 border border-sky-200 dark:border-slate-700 cursor-pointer shadow-xs active:scale-95"
               title={isCollapsed ? 'Tampilkan Jurnal Pribadi' : 'Sembunyikan Jurnal Pribadi'}
             >
               {isCollapsed ? (
                 <>
-                  <Eye className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                  <Eye className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
                   <span>Show</span>
                 </>
               ) : (
@@ -156,12 +164,12 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
               <div className="p-5 sm:p-8 space-y-8">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b-2 border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-3">
-                    <span className="w-1.5 h-11 rounded-full bg-rose-500 shrink-0" />
-                    <div className="w-11 h-11 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 text-xl">
+                    <span className="w-1.5 h-11 rounded-full bg-sky-500 shrink-0" />
+                    <div className="w-11 h-11 rounded-2xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 text-xl shadow-xs">
                       🌟
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-600 dark:text-rose-400">
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-sky-700 dark:text-sky-300">
                         Jurnal & Refleksi Diri
                       </p>
                       <h3 className="text-base sm:text-xl font-extrabold text-slate-900 dark:text-white leading-tight">
@@ -169,7 +177,7 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
                       </h3>
                       <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-body mt-0.5">
                         Refleksi tanggal{' '}
-                        <span className="font-bold text-rose-600 dark:text-rose-400">{dateFormattedText}</span>
+                        <span className="font-bold text-sky-700 dark:text-sky-300">{dateFormattedText}</span>
                       </p>
                     </div>
                   </div>

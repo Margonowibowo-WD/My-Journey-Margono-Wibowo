@@ -49,7 +49,7 @@ export const PersonalNotesModal: React.FC<{
               <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
                 <span>Catatan Pribadi & Ide Strategis</span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
-                  Pak Margono
+                  Margono wibowo
                 </span>
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-body mt-0.5">
@@ -895,7 +895,7 @@ export const RewardModal: React.FC<{
 
         <div className="relative z-10 space-y-3">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500 text-slate-950 text-xs font-black uppercase tracking-widest shadow-lg border border-yellow-200">
-            <span>👑</span> MAHKOTA JUARA HARIAN PAK MARGONO <span>👑</span>
+            <span>👑</span> MAHKOTA JUARA HARIAN MARGONO WIBOWO <span>👑</span>
           </div>
 
           <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
@@ -1030,7 +1030,7 @@ export const BackupModal: React.FC<{
               <span>Sinkronisasi Otomatis Google Sheet Aktif</span>
             </div>
             <p className="text-[11px] text-emerald-700 dark:text-emerald-400 leading-relaxed">
-              Seluruh catatan, tugas, dan kebiasaan (habit) Anda sudah otomatis tersimpan langsung ke Google Sheet My Journey Pak Margono.
+              Seluruh catatan, tugas, dan kebiasaan (habit) Anda sudah otomatis tersimpan langsung ke Google Sheet My Journey Margono wibowo.
             </p>
           </div>
 

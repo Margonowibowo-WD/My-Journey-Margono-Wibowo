@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ListTodo, CheckCircle2, Clock, Layers, BookOpen } from 'lucide-react';
 import { AppStateData, ScheduledTask, DailyTask, DayReflection, Habit, TimeCategory } from './types';
 import { getInitialAppState, formatDateKey, getOffsetDateString, advanceDeadlineDate } from './utils/initialData';
 import { playClickSound, playCelebrationSound, playFanfareSound, initAudioContext } from './utils/audio';
@@ -85,6 +86,9 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date(today.getFullYear(), today.getMonth(), today.getDate()));
   const [currentViewMonth, setCurrentViewMonth] = useState<number>(today.getMonth());
   const [currentViewYear, setCurrentViewYear] = useState<number>(today.getFullYear());
+  const [activeFeatureSection, setActiveFeatureSection] = useState<'all' | 'tasks' | 'habit' | 'time' | 'journal'>('all');
+  const selectedDateStr = formatDateKey(selectedDate);
+  const pendingDailyCount = appState.dailyTasks.filter(t => t.dateStr === selectedDateStr && !t.completed).length;
 
   // Canvas ref for confetti
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -325,7 +329,7 @@ export default function App() {
       localStorage.setItem('myjourney_theme_mode', 'auto');
       showToast(
         isRest
-          ? 'Mode Otomatis Aktif: Saat ini Waktu Istirahat Pak Margono (Tema Gelap).'
+          ? 'Mode Otomatis Aktif: Saat ini Waktu Istirahat Margono wibowo (Tema Gelap).'
           : 'Mode Otomatis Aktif: Saat ini Waktu Produktif Siang (Tema Terang).',
         'info'
       );
@@ -612,26 +616,67 @@ export default function App() {
   };
 
   // Time Tracker actions
+  const lastPixelSoundRef = useRef<number>(0);
+  const handlePaintPixel = (dateStr: string, hour: number, categoryId: string | null) => {
+    setAppState(prev => {
+      const currentDayData = prev.timeTracking[dateStr] || {};
+      const currentCat = currentDayData[hour] ?? null;
+      if (currentCat === categoryId) return prev;
+
+      const newDayData = { ...currentDayData };
+      if (categoryId === null) {
+        delete newDayData[hour];
+      } else {
+        newDayData[hour] = categoryId;
+      }
+
+      const nextState: AppStateData = {
+        ...prev,
+        timeTracking: {
+          ...prev.timeTracking,
+          [dateStr]: newDayData
+        }
+      };
+
+      isEditingRecentlyRef.current = Date.now();
+      localStorage.setItem('myjourney_margono_db', JSON.stringify(nextState));
+
+      setCloudStatus('syncing');
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = setTimeout(async () => {
+        try {
+          const payload = new URLSearchParams({ data: JSON.stringify(nextState) });
+          await fetch(GOOGLE_SHEET_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: payload
+          });
+          setCloudStatus('synced');
+        } catch {
+          setCloudStatus('synced');
+        }
+      }, 500);
+
+      return nextState;
+    });
+
+    const now = Date.now();
+    if (now - lastPixelSoundRef.current > 120) {
+      lastPixelSoundRef.current = now;
+      if (categoryId === null) {
+        playClickSound(appState.soundEnabled);
+      } else {
+        playCelebrationSound(appState.soundEnabled);
+      }
+    }
+  };
+
   const handleTogglePixel = (dateStr: string, hour: number) => {
     const currentDayData = appState.timeTracking[dateStr] || {};
     const currentCat = currentDayData[hour];
-    const newDayData = { ...currentDayData };
-
-    if (currentCat === appState.activeTimeCategoryId) {
-      delete newDayData[hour];
-      playClickSound(appState.soundEnabled);
-    } else {
-      newDayData[hour] = appState.activeTimeCategoryId;
-      playCelebrationSound(appState.soundEnabled);
-    }
-
-    saveState({
-      ...appState,
-      timeTracking: {
-        ...appState.timeTracking,
-        [dateStr]: newDayData
-      }
-    });
+    const newCategory = currentCat === appState.activeTimeCategoryId ? null : appState.activeTimeCategoryId;
+    handlePaintPixel(dateStr, hour, newCategory);
   };
 
   const handleResetMonthTime = () => {
@@ -895,121 +940,369 @@ export default function App() {
               showToast('🎉 Luar biasa! Sesi fokus produktif Margono telah selesai.', 'success');
             }}
             onPlayClickSound={() => playClickSound(appState.soundEnabled)}
+            onAddDailyTask={(title, dateStr, priority) => handleSaveDailyTask(title, dateStr, priority)}
           />
         </motion.div>
 
-        {/* Tasks Section (Pekerjaan Saya) */}
-        <motion.div
-          initial={{ opacity: 0, y: 22 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-30px' }}
-          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <TasksSection
-            selectedDate={selectedDate}
-            todayDate={today}
-            dailyTasks={appState.dailyTasks}
-            scheduledTasks={appState.scheduledTasks}
-            nationalHolidays={appState.nationalHolidays[currentViewYear] || {}}
-            onToggleDailyTask={handleToggleDailyTask}
-            onEditDailyTask={task => {
-              setDailyTaskToEdit(task);
-              setIsDailyModalOpen(true);
-            }}
-            onDeleteDailyTask={handleDeleteDailyTask}
-            onOpenAddDailyTask={() => {
-              setDailyTaskToEdit(null);
-              setIsDailyModalOpen(true);
-            }}
-            onToggleScheduledTask={handleToggleScheduledTask}
-            onEditScheduledTask={task => {
-              setTaskToEdit(task);
-              setIsScheduledModalOpen(true);
-            }}
-            onDeleteScheduledTask={handleDeleteScheduledTask}
-            onOpenAddScheduledTask={() => {
-              setTaskToEdit(null);
-              setIsScheduledModalOpen(true);
-            }}
-            onAdvanceRecurringScheduledTask={handleAdvanceRecurringScheduledTask}
-          />
-        </motion.div>
+        {/* Navigasi / Tab Switcher Cepat Fitur Produktivitas Margono (Tugas, Habit, Time Tracker) */}
+        <div className="p-2 sm:p-2.5 rounded-2xl bg-white/85 dark:bg-slate-900/85 border border-slate-200/90 dark:border-slate-800 shadow-sm backdrop-blur-md">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 px-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                  Panel Produktivitas
+                </p>
+                <h3 className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-white truncate">
+                  Peralihan Antar Fitur Margono
+                </h3>
+              </div>
+            </div>
 
-        {/* Habit Tracker Matrix */}
-        <motion.div
-          initial={{ opacity: 0, y: 22 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-30px' }}
-          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <HabitTracker
-            habits={appState.habits}
-            currentViewYear={currentViewYear}
-            currentViewMonth={currentViewMonth}
-            selectedDate={selectedDate}
-            todayDate={today}
-            onToggleHabitDay={handleToggleHabitDay}
-            onEditHabit={habit => {
-              setHabitToEdit(habit);
-              setIsHabitModalOpen(true);
-            }}
-            onDeleteHabit={handleDeleteHabit}
-            onOpenAddHabitModal={() => {
-              setHabitToEdit(null);
-              setIsHabitModalOpen(true);
-            }}
-          />
-        </motion.div>
+            {/* Segmented Controls: 5 Tab Termasuk Jurnal Pribadi */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1.5 p-1 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60">
+              {/* Tab 1: Tugas (Pekerjaan Saya) */}
+              <button
+                type="button"
+                onClick={() => {
+                  playClickSound(appState.soundEnabled);
+                  setActiveFeatureSection('tasks');
+                }}
+                className={`py-2 px-3 rounded-lg text-xs font-extrabold transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer hover:-translate-y-0.5 active:scale-95 ${
+                  activeFeatureSection === 'tasks'
+                    ? 'bg-rose-500 text-white shadow-md shadow-rose-500/25 ring-1 ring-rose-400'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/70 dark:hover:bg-slate-700/70 hover:shadow-sm'
+                }`}
+              >
+                <ListTodo className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Pekerjaan Saya</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-black shrink-0 ${
+                    activeFeatureSection === 'tasks'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300'
+                  }`}
+                >
+                  {pendingDailyCount}
+                </span>
+              </button>
 
-        {/* Time Tracker 24 Jam Matrix */}
-        <motion.div
-          initial={{ opacity: 0, y: 22 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-30px' }}
-          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <TimeTracker
-            currentViewYear={currentViewYear}
-            currentViewMonth={currentViewMonth}
-            selectedDate={selectedDate}
-            todayDate={today}
-            timeCategories={appState.timeCategories}
-            activeCategoryId={appState.activeTimeCategoryId}
-            timeTracking={appState.timeTracking}
-            onSelectCategory={id => saveState({ ...appState, activeTimeCategoryId: id })}
-            onEditCategory={cat => {
-              setCategoryToEdit(cat);
-              setIsCategoryModalOpen(true);
-            }}
-            onDeleteCategory={handleDeleteTimeCategory}
-            onTogglePixel={handleTogglePixel}
-            onResetMonth={handleResetMonthTime}
-            onOpenAddCategoryModal={() => {
-              setCategoryToEdit(null);
-              setIsCategoryModalOpen(true);
-            }}
-            onSelectDate={handleSelectDate}
-          />
-        </motion.div>
+              {/* Tab 2: Habit Tracker */}
+              <button
+                type="button"
+                onClick={() => {
+                  playClickSound(appState.soundEnabled);
+                  setActiveFeatureSection('habit');
+                }}
+                className={`py-2 px-3 rounded-lg text-xs font-extrabold transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer hover:-translate-y-0.5 active:scale-95 ${
+                  activeFeatureSection === 'habit'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/25 ring-1 ring-emerald-400'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/70 dark:hover:bg-slate-700/70 hover:shadow-sm'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Habit Tracker</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-black shrink-0 ${
+                    activeFeatureSection === 'habit'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
+                  }`}
+                >
+                  {appState.habits.length}
+                </span>
+              </button>
 
-        {/* Jurnal Pribadi & Bank Afirmasi */}
-        <motion.div
-          initial={{ opacity: 0, y: 22 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-30px' }}
-          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <div id="journal-section">
-            <JournalSection
-              selectedDate={selectedDate}
-              reflections={appState.reflections}
-              affirmations={appState.affirmations}
-              onSaveReflection={handleSaveReflection}
-              onOpenCustomAffirmation={() => setIsCustomAffirmationOpen(true)}
-              onOpenBackupModal={() => setIsBackupOpen(true)}
-            />
+              {/* Tab 3: Time Tracker */}
+              <button
+                type="button"
+                onClick={() => {
+                  playClickSound(appState.soundEnabled);
+                  setActiveFeatureSection('time');
+                }}
+                className={`py-2 px-3 rounded-lg text-xs font-extrabold transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer hover:-translate-y-0.5 active:scale-95 ${
+                  activeFeatureSection === 'time'
+                    ? 'bg-violet-600 text-white shadow-md shadow-violet-500/25 ring-1 ring-violet-400'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/70 dark:hover:bg-slate-700/70 hover:shadow-sm'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Time Tracker</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-black shrink-0 ${
+                    activeFeatureSection === 'time'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300'
+                  }`}
+                >
+                  24 Jam
+                </span>
+              </button>
+
+              {/* Tab 4: Jurnal Pribadi */}
+              <button
+                type="button"
+                onClick={() => {
+                  playClickSound(appState.soundEnabled);
+                  setActiveFeatureSection('journal');
+                }}
+                className={`py-2 px-3 rounded-lg text-xs font-extrabold transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer hover:-translate-y-0.5 active:scale-95 ${
+                  activeFeatureSection === 'journal'
+                    ? 'bg-amber-600 text-white shadow-md shadow-amber-500/25 ring-1 ring-amber-400'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/70 dark:hover:bg-slate-700/70 hover:shadow-sm'
+                }`}
+              >
+                <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Jurnal Pribadi</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-black shrink-0 ${
+                    activeFeatureSection === 'journal'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
+                  }`}
+                >
+                  Refleksi
+                </span>
+              </button>
+
+              {/* Tab 5: Tampilkan Semua */}
+              <button
+                type="button"
+                onClick={() => {
+                  playClickSound(appState.soundEnabled);
+                  setActiveFeatureSection('all');
+                }}
+                className={`col-span-2 sm:col-span-1 py-2 px-3 rounded-lg text-xs font-extrabold transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer hover:-translate-y-0.5 active:scale-95 ${
+                  activeFeatureSection === 'all'
+                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md ring-1 ring-slate-400'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/70 dark:hover:bg-slate-700/70 hover:shadow-sm'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Semua Fitur</span>
+              </button>
+            </div>
           </div>
-        </motion.div>
+        </div>
+
+        {/* Transisi Fade-In Halus Saat Pengguna Berpindah Antara Section Tugas, Habit, dan Time Tracker */}
+        <AnimatePresence mode="wait">
+          {activeFeatureSection === 'tasks' && (
+            <motion.div
+              key="feature-section-tasks"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <TasksSection
+                selectedDate={selectedDate}
+                todayDate={today}
+                dailyTasks={appState.dailyTasks}
+                scheduledTasks={appState.scheduledTasks}
+                nationalHolidays={appState.nationalHolidays[currentViewYear] || {}}
+                onToggleDailyTask={handleToggleDailyTask}
+                onEditDailyTask={task => {
+                  setDailyTaskToEdit(task);
+                  setIsDailyModalOpen(true);
+                }}
+                onDeleteDailyTask={handleDeleteDailyTask}
+                onOpenAddDailyTask={() => {
+                  setDailyTaskToEdit(null);
+                  setIsDailyModalOpen(true);
+                }}
+                onToggleScheduledTask={handleToggleScheduledTask}
+                onEditScheduledTask={task => {
+                  setTaskToEdit(task);
+                  setIsScheduledModalOpen(true);
+                }}
+                onDeleteScheduledTask={handleDeleteScheduledTask}
+                onOpenAddScheduledTask={() => {
+                  setTaskToEdit(null);
+                  setIsScheduledModalOpen(true);
+                }}
+                onAdvanceRecurringScheduledTask={handleAdvanceRecurringScheduledTask}
+                forceExpanded={true}
+              />
+            </motion.div>
+          )}
+
+          {activeFeatureSection === 'habit' && (
+            <motion.div
+              key="feature-section-habit"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <HabitTracker
+                habits={appState.habits}
+                currentViewYear={currentViewYear}
+                currentViewMonth={currentViewMonth}
+                selectedDate={selectedDate}
+                todayDate={today}
+                onToggleHabitDay={handleToggleHabitDay}
+                onEditHabit={habit => {
+                  setHabitToEdit(habit);
+                  setIsHabitModalOpen(true);
+                }}
+                onDeleteHabit={handleDeleteHabit}
+                onOpenAddHabitModal={() => {
+                  setHabitToEdit(null);
+                  setIsHabitModalOpen(true);
+                }}
+                forceExpanded={true}
+              />
+            </motion.div>
+          )}
+
+          {activeFeatureSection === 'time' && (
+            <motion.div
+              key="feature-section-time"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <TimeTracker
+                currentViewYear={currentViewYear}
+                currentViewMonth={currentViewMonth}
+                selectedDate={selectedDate}
+                todayDate={today}
+                timeCategories={appState.timeCategories}
+                activeCategoryId={appState.activeTimeCategoryId}
+                timeTracking={appState.timeTracking}
+                onSelectCategory={id => saveState({ ...appState, activeTimeCategoryId: id })}
+                onEditCategory={cat => {
+                  setCategoryToEdit(cat);
+                  setIsCategoryModalOpen(true);
+                }}
+                onDeleteCategory={handleDeleteTimeCategory}
+                onTogglePixel={handleTogglePixel}
+                onPaintPixel={handlePaintPixel}
+                onResetMonth={handleResetMonthTime}
+                onOpenAddCategoryModal={() => {
+                  setCategoryToEdit(null);
+                  setIsCategoryModalOpen(true);
+                }}
+                onSelectDate={handleSelectDate}
+                forceExpanded={true}
+              />
+            </motion.div>
+          )}
+
+          {activeFeatureSection === 'journal' && (
+            <motion.div
+              key="feature-section-journal"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <div id="journal-section">
+                <JournalSection
+                  selectedDate={selectedDate}
+                  reflections={appState.reflections}
+                  affirmations={appState.affirmations}
+                  onSaveReflection={handleSaveReflection}
+                  onOpenCustomAffirmation={() => setIsCustomAffirmationOpen(true)}
+                  onOpenBackupModal={() => setIsBackupOpen(true)}
+                  forceExpanded={true}
+                />
+              </div>
+            </motion.div>
+          )}
+
+          {activeFeatureSection === 'all' && (
+            <motion.div
+              key="feature-section-all"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-7"
+            >
+              <TasksSection
+                selectedDate={selectedDate}
+                todayDate={today}
+                dailyTasks={appState.dailyTasks}
+                scheduledTasks={appState.scheduledTasks}
+                nationalHolidays={appState.nationalHolidays[currentViewYear] || {}}
+                onToggleDailyTask={handleToggleDailyTask}
+                onEditDailyTask={task => {
+                  setDailyTaskToEdit(task);
+                  setIsDailyModalOpen(true);
+                }}
+                onDeleteDailyTask={handleDeleteDailyTask}
+                onOpenAddDailyTask={() => {
+                  setDailyTaskToEdit(null);
+                  setIsDailyModalOpen(true);
+                }}
+                onToggleScheduledTask={handleToggleScheduledTask}
+                onEditScheduledTask={task => {
+                  setTaskToEdit(task);
+                  setIsScheduledModalOpen(true);
+                }}
+                onDeleteScheduledTask={handleDeleteScheduledTask}
+                onOpenAddScheduledTask={() => {
+                  setTaskToEdit(null);
+                  setIsScheduledModalOpen(true);
+                }}
+                onAdvanceRecurringScheduledTask={handleAdvanceRecurringScheduledTask}
+              />
+              <HabitTracker
+                habits={appState.habits}
+                currentViewYear={currentViewYear}
+                currentViewMonth={currentViewMonth}
+                selectedDate={selectedDate}
+                todayDate={today}
+                onToggleHabitDay={handleToggleHabitDay}
+                onEditHabit={habit => {
+                  setHabitToEdit(habit);
+                  setIsHabitModalOpen(true);
+                }}
+                onDeleteHabit={handleDeleteHabit}
+                onOpenAddHabitModal={() => {
+                  setHabitToEdit(null);
+                  setIsHabitModalOpen(true);
+                }}
+              />
+              <TimeTracker
+                currentViewYear={currentViewYear}
+                currentViewMonth={currentViewMonth}
+                selectedDate={selectedDate}
+                todayDate={today}
+                timeCategories={appState.timeCategories}
+                activeCategoryId={appState.activeTimeCategoryId}
+                timeTracking={appState.timeTracking}
+                onSelectCategory={id => saveState({ ...appState, activeTimeCategoryId: id })}
+                onEditCategory={cat => {
+                  setCategoryToEdit(cat);
+                  setIsCategoryModalOpen(true);
+                }}
+                onDeleteCategory={handleDeleteTimeCategory}
+                onTogglePixel={handleTogglePixel}
+                onPaintPixel={handlePaintPixel}
+                onResetMonth={handleResetMonthTime}
+                onOpenAddCategoryModal={() => {
+                  setCategoryToEdit(null);
+                  setIsCategoryModalOpen(true);
+                }}
+                onSelectDate={handleSelectDate}
+              />
+              <div id="journal-section">
+                <JournalSection
+                  selectedDate={selectedDate}
+                  reflections={appState.reflections}
+                  affirmations={appState.affirmations}
+                  onSaveReflection={handleSaveReflection}
+                  onOpenCustomAffirmation={() => setIsCustomAffirmationOpen(true)}
+                  onOpenBackupModal={() => setIsBackupOpen(true)}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Footer */}

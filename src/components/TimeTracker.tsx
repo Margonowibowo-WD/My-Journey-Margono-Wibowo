@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Trash2, Edit2, Clock, Eye, EyeOff } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { TimeCategory, TimeTrackingData } from '../types';
@@ -15,9 +15,11 @@ interface TimeTrackerProps {
   onEditCategory: (cat: TimeCategory) => void;
   onDeleteCategory: (id: string) => void;
   onTogglePixel: (dateStr: string, hour: number) => void;
+  onPaintPixel?: (dateStr: string, hour: number, categoryId: string | null) => void;
   onResetMonth: () => void;
   onOpenAddCategoryModal: () => void;
   onSelectDate: (year: number, month: number, day: number) => void;
+  forceExpanded?: boolean;
 }
 
 const monthNames = [
@@ -37,12 +39,89 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({
   onEditCategory,
   onDeleteCategory,
   onTogglePixel,
+  onPaintPixel,
   onResetMonth,
   onOpenAddCategoryModal,
-  onSelectDate
+  onSelectDate,
+  forceExpanded
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(forceExpanded !== undefined ? !forceExpanded : true);
+
+  useEffect(() => {
+    if (forceExpanded !== undefined) {
+      setIsCollapsed(!forceExpanded);
+    }
+  }, [forceExpanded]);
   const daysInMonth = new Date(currentViewYear, currentViewMonth + 1, 0).getDate();
+
+  // Mouse & Touch Drag-and-Paint State for Fast Range Filling (e.g. Jam 01 - 06 Tidur)
+  const isDraggingRef = useRef<boolean>(false);
+  const dragTargetCategoryRef = useRef<string | null>(null);
+  const lastDraggedCellRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const handleGlobalEnd = () => {
+      isDraggingRef.current = false;
+      dragTargetCategoryRef.current = null;
+      lastDraggedCellRef.current = null;
+    };
+    window.addEventListener('mouseup', handleGlobalEnd);
+    window.addEventListener('touchend', handleGlobalEnd);
+    return () => {
+      window.removeEventListener('mouseup', handleGlobalEnd);
+      window.removeEventListener('touchend', handleGlobalEnd);
+    };
+  }, []);
+
+  const handlePixelMouseDown = (e: React.MouseEvent, dateStr: string, hour: number) => {
+    e.preventDefault();
+    isDraggingRef.current = true;
+    const currentCat = timeTracking[dateStr]?.[hour];
+    const newCategory = currentCat === activeCategoryId ? null : activeCategoryId;
+    dragTargetCategoryRef.current = newCategory;
+    lastDraggedCellRef.current = `${dateStr}-${hour}`;
+
+    if (onPaintPixel) {
+      onPaintPixel(dateStr, hour, newCategory);
+    } else {
+      onTogglePixel(dateStr, hour);
+    }
+  };
+
+  const handlePixelMouseEnter = (dateStr: string, hour: number) => {
+    if (!isDraggingRef.current) return;
+    const cellKey = `${dateStr}-${hour}`;
+    if (lastDraggedCellRef.current === cellKey) return;
+    lastDraggedCellRef.current = cellKey;
+
+    const targetCat = dragTargetCategoryRef.current;
+    if (onPaintPixel) {
+      onPaintPixel(dateStr, hour, targetCat);
+    } else {
+      const currentCat = timeTracking[dateStr]?.[hour];
+      if (targetCat === null && currentCat !== undefined) {
+        onTogglePixel(dateStr, hour);
+      } else if (targetCat !== null && currentCat !== targetCat) {
+        onTogglePixel(dateStr, hour);
+      }
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDraggingRef.current) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+    const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+    const pixelButton = targetEl?.closest('[data-pixel-date]') as HTMLElement | null;
+    if (pixelButton) {
+      const dStr = pixelButton.getAttribute('data-pixel-date');
+      const hourStr = pixelButton.getAttribute('data-pixel-hour');
+      if (dStr && hourStr !== null) {
+        const h = parseInt(hourStr, 10);
+        handlePixelMouseEnter(dStr, h);
+      }
+    }
+  };
 
   // Map category id to full object
   const categoryMap: Record<string, TimeCategory> = {};
@@ -67,7 +146,7 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({
   }
 
   return (
-    <section className="bg-gradient-to-br from-purple-100/90 via-violet-50/80 to-indigo-50/70 dark:from-purple-950/60 dark:via-slate-900 dark:to-violet-950/40 rounded-3xl p-5 sm:p-7 shadow-sm border-2 border-purple-300 dark:border-purple-700/80 space-y-4">
+    <section className="bg-gradient-to-br from-purple-100/90 via-violet-50/80 to-indigo-50/70 dark:from-purple-950/60 dark:via-slate-900 dark:to-violet-950/40 rounded-3xl p-5 sm:p-7 shadow-sm border-2 border-purple-300 dark:border-purple-700/80 space-y-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-purple-400 dark:hover:border-purple-600">
       {/* Header Utama Section */}
       <div className="flex items-center justify-between gap-3 pb-3 border-b-2 border-purple-200/80 dark:border-purple-900/60">
         <div className="flex items-center gap-3 min-w-0">
@@ -140,8 +219,8 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({
                       <div
                         key={cat.id}
                         onClick={() => onSelectCategory(cat.id)}
-                        className={`group relative px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer bg-white dark:bg-slate-800 shadow-xs ${
-                          isSelected ? 'scale-105 shadow-md' : 'border border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                        className={`group relative px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-1.5 cursor-pointer bg-white dark:bg-slate-800 shadow-xs hover:-translate-y-0.5 hover:shadow-md ${
+                          isSelected ? 'scale-105 shadow-md ring-2 ring-violet-400/50' : 'border border-slate-200 dark:border-slate-700 hover:border-slate-300'
                         }`}
                         style={
                           isSelected
@@ -211,7 +290,10 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({
             </div>
 
             {/* Pixel Matrix Table */}
-            <div className="overflow-x-auto rounded-2xl border border-purple-200 dark:border-purple-800/80 bg-white dark:bg-slate-900 shadow-xs">
+            <div
+              onTouchMove={handleTouchMove}
+              className="overflow-x-auto rounded-2xl border border-purple-200 dark:border-purple-800/80 bg-white dark:bg-slate-900 shadow-xs select-none"
+            >
               <div className="min-w-[760px] p-4">
                 {/* Header Row: Jam 00 - 23 */}
                 <div className="grid grid-cols-[80px_repeat(24,_1fr)] gap-1 items-center pb-2 border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-400 dark:text-slate-500 text-center">
@@ -269,7 +351,7 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({
                           )}
                         </div>
 
-                        {/* 24 Hours Pixels */}
+                        {/* 24 Hours Pixels (Mendukung Klik & Tarik Mouse / Touch Drag Sekaligus) */}
                         {Array.from({ length: 24 }).map((_, h) => {
                           const catId = dayTracking[h];
                           const cat = catId ? categoryMap[catId] : null;
@@ -278,20 +360,24 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({
                             <button
                               key={`pixel-${day}-${h}`}
                               type="button"
-                              onClick={() => onTogglePixel(dateStr, h)}
+                              data-pixel-date={dateStr}
+                              data-pixel-hour={h}
+                              onMouseDown={(e) => handlePixelMouseDown(e, dateStr, h)}
+                              onMouseEnter={() => handlePixelMouseEnter(dateStr, h)}
+                              onTouchStart={(e) => handlePixelMouseDown(e as any, dateStr, h)}
                               title={
                                 cat
                                   ? `Tgl ${day}, Pukul ${String(h).padStart(2, '0')}:00 - ${cat.name}`
                                   : `Tgl ${day}, Pukul ${String(h).padStart(2, '0')}:00 (Kosong)`
                               }
-                              className="h-5 rounded-xs transition-all duration-150 cursor-pointer active:scale-90 flex items-center justify-center border border-black/5 dark:border-white/5"
+                              className="h-5 rounded-xs transition-all duration-75 cursor-pointer active:scale-95 flex items-center justify-center border border-black/5 dark:border-white/5 select-none touch-none"
                               style={{
                                 backgroundColor: cat ? cat.color : undefined,
                                 opacity: cat ? 1 : 0.8
                               }}
                             >
                               {!cat && (
-                                <span className="w-full h-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/70 dark:hover:bg-slate-700 rounded-xs block" />
+                                <span className="w-full h-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/70 dark:hover:bg-slate-700 rounded-xs block pointer-events-none" />
                               )}
                             </button>
                           );

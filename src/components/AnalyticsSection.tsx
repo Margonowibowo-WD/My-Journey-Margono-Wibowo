@@ -327,7 +327,7 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
   const topHabit = habitSlices[0] || null;
 
   return (
-    <section className="bg-gradient-to-br from-sky-50/70 via-indigo-50/50 to-purple-50/60 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950/30 rounded-3xl p-5 sm:p-7 shadow-sm border-2 border-indigo-200/80 dark:border-indigo-800/60 space-y-6">
+    <section className="bg-gradient-to-br from-sky-50/70 via-indigo-50/50 to-purple-50/60 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950/30 rounded-3xl p-5 sm:p-7 shadow-sm border-2 border-indigo-200/80 dark:border-indigo-800/60 space-y-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-indigo-300/80 dark:hover:border-indigo-700/80">
       {/* Header Utama Grafik */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b-2 border-indigo-200/70 dark:border-indigo-900/60">
         <div className="flex items-center gap-3">
@@ -366,7 +366,7 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
       {/* Grid 2 Kolom: Time Tracker vs Habit Tracker */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* KARTU 1: Time Tracker 24 Jam Charts */}
-        <div className="bg-white/95 dark:bg-slate-900/95 rounded-3xl p-5 sm:p-6 border border-slate-200/90 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4">
+        <div className="bg-white/95 dark:bg-slate-900/95 rounded-3xl p-5 sm:p-6 border border-slate-200/90 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-sky-300 dark:hover:border-sky-700">
           <div>
             {/* Header Kartu */}
             <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800 flex-wrap">
@@ -463,7 +463,7 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
         </div>
 
         {/* KARTU 2: Habit Tracker Matrix Charts */}
-        <div className="bg-white/95 dark:bg-slate-900/95 rounded-3xl p-5 sm:p-6 border border-slate-200/90 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4">
+        <div className="bg-white/95 dark:bg-slate-900/95 rounded-3xl p-5 sm:p-6 border border-slate-200/90 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-emerald-300 dark:hover:border-emerald-700">
           <div>
             {/* Header Kartu */}
             <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800 flex-wrap">

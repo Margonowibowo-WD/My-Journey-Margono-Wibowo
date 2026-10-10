@@ -79,37 +79,36 @@ export const Header: React.FC<HeaderProps> = ({
               <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-none">
                 My Journey
               </h1>
-              <span className="px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold bg-sky-100 dark:bg-sky-950/80 text-sky-700 dark:text-sky-300 rounded-full border border-sky-200/60 dark:border-sky-800/60">
-                Pak Margono
+              <span className="px-2.5 py-0.5 text-[11px] sm:text-xs font-bold bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 rounded-full border border-sky-300 dark:border-sky-700 shadow-2xs">
+                Margono wibowo
               </span>
             </div>
           </div>
         </div>
 
-        {/* Countdown Timer Waktu Produktif (hingga 22:00) */}
+        {/* Countdown Timer Sisa Waktu Produktif (hingga 22:00) - Tampilan Jelas & Bold */}
         <div
-          className={`px-3 py-1.5 rounded-2xl border flex items-center gap-2 shadow-xs transition-all ${
+          className={`px-3.5 sm:px-4 py-2 rounded-2xl border-2 flex items-center gap-2.5 shadow-md transition-all ${
             countdown.isPast22
-              ? 'bg-indigo-50/90 dark:bg-indigo-950/70 border-indigo-200 dark:border-indigo-800 text-indigo-900 dark:text-indigo-200'
-              : 'bg-amber-50/95 dark:bg-amber-950/70 border-amber-300 dark:border-amber-700/80 text-amber-900 dark:text-amber-200 ring-2 ring-amber-400/20'
+              ? 'bg-slate-900 border-indigo-500/80 text-indigo-300 ring-2 ring-indigo-500/30'
+              : 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white border-amber-200/90 shadow-amber-500/25 ring-2 ring-amber-400/40'
           }`}
-          title="Sisa waktu produktif harian Pak Margono hingga pukul 22:00 setiap harinya"
+          title="Sisa waktu produktif harian Margono wibowo hingga pukul 22:00 setiap harinya"
         >
-          <Clock className={`w-4 h-4 shrink-0 ${countdown.isPast22 ? 'text-indigo-600 dark:text-indigo-400' : 'text-amber-600 dark:text-amber-400 animate-pulse'}`} />
-          <div className="flex items-center gap-1.5 sm:gap-2 leading-tight">
-            <span className="text-[10px] sm:text-xs font-semibold opacity-90 hidden sm:inline">
-              {countdown.isPast22 ? '🌙 Waktu Istirahat:' : '⏳ Sisa Waktu Produktif (s/d 22:00):'}
-            </span>
-            <span className="text-[10px] font-semibold opacity-90 sm:hidden">
-              {countdown.isPast22 ? '🌙 Istirahat:' : '⏳ s/d 22:00:'}
+          <div className={`p-1.5 rounded-xl ${countdown.isPast22 ? 'bg-indigo-950/80 text-indigo-300' : 'bg-black/25 text-white'} flex items-center justify-center shrink-0`}>
+            <Clock className={`w-4 h-4 ${countdown.isPast22 ? '' : 'animate-pulse'}`} />
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 leading-none">
+            <span className={`text-[11px] sm:text-xs uppercase tracking-wider font-extrabold ${countdown.isPast22 ? 'text-indigo-300' : 'text-amber-100 drop-shadow-xs'}`}>
+              {countdown.isPast22 ? '🌙 Waktu Istirahat' : '⏳ Sisa Waktu Produktif:'}
             </span>
             {countdown.isPast22 ? (
-              <span className="font-extrabold text-[11px] sm:text-xs text-indigo-700 dark:text-indigo-300 font-mono">
-                Selesai
+              <span className="font-black text-xs sm:text-sm text-white font-mono mt-0.5 sm:mt-0">
+                Selesai (22:00)
               </span>
             ) : (
-              <span className="font-black font-mono tracking-wider text-xs sm:text-sm text-amber-800 dark:text-amber-200">
-                {countdown.hours}:{countdown.minutes}:{countdown.seconds}
+              <span className="font-black font-mono tracking-widest text-sm sm:text-base text-white drop-shadow-sm mt-0.5 sm:mt-0">
+                {countdown.hours} : {countdown.minutes} : {countdown.seconds}
               </span>
             )}
           </div>

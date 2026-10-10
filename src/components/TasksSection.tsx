@@ -19,6 +19,7 @@ interface TasksSectionProps {
   onDeleteScheduledTask: (id: string) => void;
   onOpenAddScheduledTask: () => void;
   onAdvanceRecurringScheduledTask?: (id: string) => void;
+  forceExpanded?: boolean;
 }
 
 export function calculateDaysRemaining(deadlineStr: string): number {
@@ -89,11 +90,18 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
   onEditScheduledTask,
   onDeleteScheduledTask,
   onOpenAddScheduledTask,
-  onAdvanceRecurringScheduledTask
+  onAdvanceRecurringScheduledTask,
+  forceExpanded
 }) => {
   const [activeTab, setActiveTab] = useState<'daily' | 'scheduled'>('daily');
   const [showInfoTooltip, setShowInfoTooltip] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(forceExpanded !== undefined ? !forceExpanded : true);
+
+  React.useEffect(() => {
+    if (forceExpanded !== undefined) {
+      setIsCollapsed(!forceExpanded);
+    }
+  }, [forceExpanded]);
 
   const shortMonthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
   const selectedStr = formatDateKey(selectedDate);
@@ -103,6 +111,8 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
   // Daily Tasks for selected date (sorted by completion status)
   const myDailyList = dailyTasks.filter(t => t.dateStr === selectedStr);
   const pendingCount = myDailyList.filter(t => !t.completed).length;
+  const completedDailyCount = myDailyList.filter(t => t.completed).length;
+  const dailyPct = myDailyList.length > 0 ? Math.round((completedDailyCount / myDailyList.length) * 100) : 0;
 
   const sortedDaily = [...myDailyList].sort((a, b) => {
     if (a.completed !== b.completed) return a.completed ? 1 : -1;
@@ -114,6 +124,9 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
     if (a.completed !== b.completed) return a.completed ? 1 : -1;
     return calculateDaysRemaining(a.deadline) - calculateDaysRemaining(b.deadline);
   });
+
+  const completedScheduledCount = scheduledTasks.filter(t => t.completed).length;
+  const scheduledPct = scheduledTasks.length > 0 ? Math.round((completedScheduledCount / scheduledTasks.length) * 100) : 0;
 
   // Count tasks that are mepet deadline (1-5 days or expired) and incomplete
   const mepetCount = scheduledTasks.filter(t => !t.completed && calculateDaysRemaining(t.deadline) <= 5).length;
@@ -128,33 +141,38 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
   };
 
   return (
-    <section className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-all">
+    <section className="bg-gradient-to-br from-rose-100/90 via-red-50/80 to-rose-50/70 dark:from-rose-950/60 dark:via-slate-900 dark:to-red-950/40 rounded-3xl shadow-sm border-2 border-rose-300 dark:border-rose-700/80 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-rose-400 dark:hover:border-rose-600">
       {/* Header Utama Section (Ringkas & Bersih) */}
       <div className="px-5 sm:px-7 pt-5 sm:pt-6 pb-4">
-        <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <span className="w-1.5 h-8 rounded-full bg-sky-500 shrink-0" />
-            <div className="flex items-center gap-2">
-              <span className="text-xl">📋</span>
-              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-tight">
+        <div className="flex items-center justify-between gap-3 pb-3 border-b-2 border-rose-200/80 dark:border-rose-900/60">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="w-1.5 h-10 rounded-full bg-rose-500 shrink-0" />
+            <div className="w-10 h-10 rounded-2xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-xs text-xl">
+              📋
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-800 dark:text-rose-300">
+                Daftar Agenda & Tugas
+              </p>
+              <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-tight truncate">
                 Pekerjaan Saya
               </h3>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0">
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-rose-100/90 dark:bg-rose-950/90 text-rose-800 dark:text-rose-300 border border-rose-300/80 dark:border-rose-700 shrink-0">
               {myDailyList.length + scheduledTasks.length} Agenda
             </span>
             {/* Tombol Hide / Show dengan status dan animasi transisi halus */}
             <button
               type="button"
               onClick={() => setIsCollapsed(prev => !prev)}
-              className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 cursor-pointer shadow-xs active:scale-95"
+              className="px-3.5 py-1.5 rounded-xl bg-white/90 hover:bg-white dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 border border-rose-200 dark:border-slate-700 cursor-pointer shadow-xs active:scale-95"
               title={isCollapsed ? 'Tampilkan Pekerjaan Saya' : 'Sembunyikan Pekerjaan Saya'}
             >
               {isCollapsed ? (
                 <>
-                  <Eye className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                  <Eye className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
                   <span>Show</span>
                 </>
               ) : (
@@ -187,7 +205,7 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                     onClick={() => setActiveTab('daily')}
                     className={`py-2.5 px-3 sm:px-4 rounded-xl font-extrabold text-xs sm:text-sm transition-all flex items-center justify-between gap-2 cursor-pointer ${
                       activeTab === 'daily'
-                        ? 'bg-white dark:bg-slate-900 text-cyan-700 dark:text-cyan-300 shadow-md shadow-cyan-500/10 border border-cyan-300 dark:border-cyan-700'
+                        ? 'bg-white dark:bg-slate-900 text-rose-700 dark:text-rose-300 shadow-md shadow-rose-500/10 border border-rose-300 dark:border-rose-700'
                         : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50'
                     }`}
                   >
@@ -218,7 +236,7 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                     onClick={() => setActiveTab('scheduled')}
                     className={`py-2.5 px-3 sm:px-4 rounded-xl font-extrabold text-xs sm:text-sm transition-all flex items-center justify-between gap-2 cursor-pointer ${
                       activeTab === 'scheduled'
-                        ? 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 shadow-md shadow-indigo-500/10 border border-indigo-300 dark:border-indigo-700'
+                        ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-md border border-slate-300 dark:border-slate-700'
                         : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50'
                     }`}
                   >
@@ -232,7 +250,7 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                           🔥 {mepetCount} Mepet
                         </span>
                       )}
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/80 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                         {scheduledTasks.length} Agenda
                       </span>
                     </div>
@@ -251,19 +269,19 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                       exit={{ opacity: 0, y: -12 }}
                       transition={{ duration: 0.25, ease: 'easeOut' }}
                     >
-                      {/* TAB 1: Catatan Harian (Warna bersih & elegan tanpa prioritas berlebih) */}
-                      <div className="bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 flex flex-col justify-between relative transition-all shadow-xs">
+                      {/* TAB 1: Catatan Harian (Warna bersih & konsisten merah) */}
+                      <div className="bg-white/80 dark:bg-slate-900/80 border border-rose-200 dark:border-rose-800/80 rounded-3xl p-5 sm:p-6 flex flex-col justify-between relative transition-all shadow-xs">
                         <div>
                           {/* Header Konten: Tanggal & Aksi Tambah */}
-                          <div className="flex items-center justify-between gap-3 mb-3.5 pb-3 border-b border-slate-200 dark:border-slate-800">
+                          <div className="flex items-center justify-between gap-3 mb-3.5 pb-3 border-b border-rose-200/80 dark:border-rose-900/60">
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <span className={`w-1.5 h-6 rounded-full ${pendingCount > 0 ? 'bg-rose-500' : 'bg-cyan-500'} shrink-0`} />
+                              <span className={`w-1.5 h-6 rounded-full ${pendingCount > 0 ? 'bg-rose-500' : 'bg-emerald-500'} shrink-0`} />
                               <div className="flex items-center gap-2 flex-wrap min-w-0">
                                 <span className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-slate-100">
                                   📅 {selectedDate.getDate()} {shortMonthNames[selectedDate.getMonth()]} {selectedYear}
                                 </span>
                                 {isToday && (
-                                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-cyan-100 dark:bg-cyan-950/80 text-cyan-800 dark:text-cyan-200 border border-cyan-200 dark:border-cyan-800">
+                                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-200 border border-rose-200 dark:border-rose-800">
                                     Hari Ini
                                   </span>
                                 )}
@@ -282,7 +300,7 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                             <div className="flex items-center gap-2 shrink-0">
                               <button
                                 onClick={onOpenAddDailyTask}
-                                className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                                className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
                                 title="Tambah Catatan Harian Pribadi"
                               >
                                 <Plus className="w-3.5 h-3.5" />
@@ -290,6 +308,60 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                               </button>
                             </div>
                           </div>
+
+                          {/* Animasi Progress Bar Halus & Memuaskan Saat Tugas Harian Diselesaikan */}
+                          {myDailyList.length > 0 && (
+                            <div className={`mb-4 p-3 rounded-2xl border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${
+                              dailyPct === 100
+                                ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 shadow-sm animate-celebrate-glow'
+                                : 'bg-rose-50/50 dark:bg-slate-800/60 border-rose-200/70 dark:border-rose-900/40'
+                            }`}>
+                              <div className="flex items-center justify-between text-xs mb-1.5">
+                                <div className="flex items-center gap-1.5 font-bold min-w-0">
+                                  {dailyPct === 100 ? (
+                                    <span className="text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5 truncate">
+                                      <Sparkles className="w-4 h-4 text-emerald-500 animate-spin shrink-0" style={{ animationDuration: '4s' }} />
+                                      <span className="truncate">Target Harian Tuntas 100%! Luar Biasa! 🎉</span>
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-700 dark:text-slate-200 truncate">
+                                      Progres Tugas Harian: <strong className="text-rose-600 dark:text-rose-400">{completedDailyCount}</strong> dari {myDailyList.length} selesai
+                                    </span>
+                                  )}
+                                </div>
+                                <motion.span
+                                  key={dailyPct}
+                                  initial={{ scale: 1.25 }}
+                                  animate={{ scale: 1 }}
+                                  transition={{ duration: 0.25 }}
+                                  className={`font-black text-xs font-mono px-2 py-0.5 rounded-full shadow-2xs border shrink-0 ${
+                                    dailyPct === 100
+                                      ? 'bg-emerald-500 text-white border-emerald-400 shadow-emerald-500/20'
+                                      : 'bg-white dark:bg-slate-900 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-slate-700'
+                                  }`}
+                                >
+                                  {dailyPct}%
+                                </motion.span>
+                              </div>
+
+                              {/* Bar Track & Animated Fill */}
+                              <div className="w-full h-3 bg-white dark:bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-slate-700 shadow-inner relative">
+                                <motion.div
+                                  className={`h-full rounded-full relative overflow-hidden shadow-xs ${
+                                    dailyPct === 100
+                                      ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-green-500 shadow-emerald-400/40'
+                                      : 'bg-gradient-to-r from-rose-500 via-red-500 to-pink-500 shadow-rose-400/30'
+                                  }`}
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${dailyPct}%` }}
+                                  transition={{ type: 'spring', stiffness: 80, damping: 14 }}
+                                >
+                                  {/* Shimmer sweep animation over bar */}
+                                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-full h-full animate-progress-shimmer pointer-events-none" />
+                                </motion.div>
+                              </div>
+                            </div>
+                          )}
 
                           <div className="space-y-2.5">
                             {sortedDaily.length === 0 ? (
@@ -305,14 +377,14 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                                     task.completed
                                       ? 'bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 opacity-60 shadow-none'
                                       : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs hover:border-slate-300 dark:hover:border-slate-700'
-                                  } flex items-center justify-between gap-3 transition-all hover:shadow-md`}
+                                  } flex items-center justify-between gap-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md`}
                                 >
                                   <div className="flex items-center gap-3 flex-1 min-w-0">
                                     <input
                                       type="checkbox"
                                       checked={task.completed}
                                       onChange={() => onToggleDailyTask(task.id)}
-                                      className="w-4 h-4 rounded text-sky-600 focus:ring-sky-500 cursor-pointer accent-sky-600"
+                                      className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 cursor-pointer accent-rose-600"
                                     />
                                     <div className="min-w-0 flex-1">
                                       <p
@@ -430,30 +502,84 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                             </div>
                           </div>
 
-              <div className="space-y-2.5">
-                {sortedScheduled.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-xs font-body italic bg-white/50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
-                    <p className="text-base mb-1">⏰</p>
-                    Belum ada Catatan Jangan Sampai Lupa yang dijadwalkan.
-                  </div>
-                ) : (
-                  sortedScheduled.map(task => {
-                    const days = calculateDaysRemaining(task.deadline);
-                    const style = getDeadlineColorStyle(days);
-                    const isTaskMepet = style.isMepet && !task.completed;
-                    const repeatInfo = task.repeat && repeatBadges[task.repeat];
+                          {/* Animasi Progress Bar Halus & Memuaskan Saat Catatan Jangan Sampai Lupa Diselesaikan */}
+                          {scheduledTasks.length > 0 && (
+                            <div className={`mb-4 p-3 rounded-2xl border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${
+                              scheduledPct === 100
+                                ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 shadow-sm animate-celebrate-glow'
+                                : 'bg-indigo-50/50 dark:bg-slate-800/60 border-indigo-200/70 dark:border-indigo-900/40'
+                            }`}>
+                              <div className="flex items-center justify-between text-xs mb-1.5">
+                                <div className="flex items-center gap-1.5 font-bold min-w-0">
+                                  {scheduledPct === 100 ? (
+                                    <span className="text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5 truncate">
+                                      <Sparkles className="w-4 h-4 text-emerald-500 animate-spin shrink-0" style={{ animationDuration: '4s' }} />
+                                      <span className="truncate">Semua Catatan & Deadline Tuntas 100%! 🎉</span>
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-700 dark:text-slate-200 truncate">
+                                      Progres Jatuh Tempo: <strong className="text-indigo-600 dark:text-indigo-400">{completedScheduledCount}</strong> dari {scheduledTasks.length} selesai
+                                    </span>
+                                  )}
+                                </div>
+                                <motion.span
+                                  key={scheduledPct}
+                                  initial={{ scale: 1.25 }}
+                                  animate={{ scale: 1 }}
+                                  transition={{ duration: 0.25 }}
+                                  className={`font-black text-xs font-mono px-2 py-0.5 rounded-full shadow-2xs border shrink-0 ${
+                                    scheduledPct === 100
+                                      ? 'bg-emerald-500 text-white border-emerald-400 shadow-emerald-500/20'
+                                      : 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-slate-700'
+                                  }`}
+                                >
+                                  {scheduledPct}%
+                                </motion.span>
+                              </div>
 
-                    return (
-                      <div
-                        key={task.id}
-                        className={`p-3.5 rounded-2xl ${
-                          task.completed
-                            ? 'bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 opacity-60 shadow-none'
-                            : isTaskMepet
-                            ? 'task-mepet-deadline-pulse'
-                            : `bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 ${style.cardBorderClass}`
-                        } flex flex-col gap-2 transition-all hover:shadow-md`}
-                      >
+                              {/* Bar Track & Animated Fill */}
+                              <div className="w-full h-3 bg-white dark:bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-slate-700 shadow-inner relative">
+                                <motion.div
+                                  className={`h-full rounded-full relative overflow-hidden shadow-xs ${
+                                    scheduledPct === 100
+                                      ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-green-500 shadow-emerald-400/40'
+                                      : 'bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-500 shadow-indigo-400/30'
+                                  }`}
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${scheduledPct}%` }}
+                                  transition={{ type: 'spring', stiffness: 80, damping: 14 }}
+                                >
+                                  {/* Shimmer sweep animation over bar */}
+                                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-full h-full animate-progress-shimmer pointer-events-none" />
+                                </motion.div>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="space-y-2.5">
+                            {sortedScheduled.length === 0 ? (
+                              <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-xs font-body italic bg-white/50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                                <p className="text-base mb-1">⏰</p>
+                                Belum ada Catatan Jangan Sampai Lupa yang dijadwalkan.
+                              </div>
+                            ) : (
+                              sortedScheduled.map(task => {
+                                const days = calculateDaysRemaining(task.deadline);
+                                const style = getDeadlineColorStyle(days);
+                                const isTaskMepet = style.isMepet && !task.completed;
+                                const repeatInfo = task.repeat && repeatBadges[task.repeat];
+
+                                return (
+                                  <div
+                                    key={task.id}
+                                    className={`p-3.5 rounded-2xl ${
+                                      task.completed
+                                        ? 'bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 opacity-60 shadow-none'
+                                        : isTaskMepet
+                                        ? 'task-mepet-deadline-pulse'
+                                        : `bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 ${style.cardBorderClass}`
+                                    } flex flex-col gap-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md`}
+                                  >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-start gap-3 flex-1 min-w-0">
                             <input

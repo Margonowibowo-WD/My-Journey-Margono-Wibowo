@@ -309,3 +309,29 @@ html.dark .task-mepet-deadline-pulse {
   animation: task-urgent-red-pulse-dark 1.8s infinite ease-in-out !important;
   border-width: 2px !important;
 }
+
+/* Animasi Progress Bar Halus & Efek Shimmer Mewah */
+@keyframes progress-shimmer-sweep {
+  0% { transform: translateX(-150%); opacity: 0; }
+  30% { opacity: 0.7; }
+  70% { opacity: 0.7; }
+  100% { transform: translateX(350%); opacity: 0; }
+}
+
+.animate-progress-shimmer {
+  animation: progress-shimmer-sweep 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes progress-celebrate-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.4), inset 0 0 6px rgba(52, 211, 153, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(16, 185, 129, 0.85), inset 0 0 12px rgba(52, 211, 153, 0.6);
+  }
+}
+
+.animate-celebrate-glow {
+  animation: progress-celebrate-glow 2s infinite ease-in-out;
+}
+

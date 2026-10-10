@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Zap, Target, Clock, Play, Pause, RotateCcw, Maximize2, Minimize2, Palette, Bell, CheckCircle2, ClipboardList, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Zap, Target, Clock, Play, Pause, RotateCcw, Maximize2, Minimize2, Palette, Bell, CheckCircle2, ClipboardList, ListTodo, CalendarClock, Check, Plus, X, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { DailyTask, ScheduledTask } from '../types';
 import { formatDateKey } from '../utils/initialData';
 import { calculateDaysRemaining } from './TasksSection';
@@ -174,6 +175,7 @@ interface CalendarSectionProps {
   onPlayClickSound?: () => void;
   onToggleDailyTask?: (id: string) => void;
   onToggleScheduledTask?: (id: string) => void;
+  onAddDailyTask?: (title: string, dateStr: string, priority: 'high' | 'medium' | 'low') => void;
 }
 
 export const CalendarSection: React.FC<CalendarSectionProps> = ({
@@ -191,7 +193,8 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
   onCompleteFocusSession,
   onPlayClickSound,
   onToggleDailyTask,
-  onToggleScheduledTask
+  onToggleScheduledTask,
+  onAddDailyTask
 }) => {
   const [focusMinutes, setFocusMinutes] = useState<number>(25);
   const [secondsRemaining, setSecondsRemaining] = useState<number>(25 * 60);
@@ -208,6 +211,8 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
   });
 
   const [hoveredCellDate, setHoveredCellDate] = useState<string | null>(null);
+  const [addingTaskDate, setAddingTaskDate] = useState<string | null>(null);
+  const [quickTaskTitles, setQuickTaskTitles] = useState<Record<string, string>>({});
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleCellMouseEnter = (dateStr: string) => {
@@ -256,9 +261,12 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
     if (daysLeft <= 0) {
       return {
         daysLeft,
+        isMepet: true,
+        label: 'Expired',
         badgeText: daysLeft === 0 ? 'Hari Ini!' : `Terlewat ${Math.abs(daysLeft)} Hari`,
-        badgeStyle: 'bg-red-600 text-white border border-red-300 shadow-[0_0_10px_rgba(239,68,68,0.85)] animate-pulse',
+        badgeStyle: 'bg-red-600 text-white border border-red-300 shadow-[0_0_12px_rgba(239,68,68,0.9)] animate-pulse font-extrabold',
         cardStyle: 'border-2 border-red-500 bg-red-950/80 hover:bg-red-900/70 shadow-md shadow-red-950/50',
+        borderAccent: 'border-l-4 border-l-red-500',
         titleColor: 'text-red-100 font-bold',
         chkStyle: 'border-red-400 hover:border-red-300 hover:bg-red-500/25 text-red-300',
         indicatorIcon: '🚨'
@@ -267,9 +275,12 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
     if (daysLeft <= 5) {
       return {
         daysLeft,
-        badgeText: `${daysLeft} Hari (Mepet)`,
-        badgeStyle: 'bg-rose-600 text-white border border-rose-300 shadow-[0_0_10px_rgba(244,63,94,0.7)]',
+        isMepet: true,
+        label: 'Mepet Deadline',
+        badgeText: `${daysLeft} Hari Lagi (Mepet)`,
+        badgeStyle: 'bg-rose-600 text-white border border-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.85)] animate-pulse font-extrabold',
         cardStyle: 'border-2 border-rose-500 bg-rose-950/70 hover:bg-rose-900/60 shadow-md shadow-rose-950/50',
+        borderAccent: 'border-l-4 border-l-rose-500',
         titleColor: 'text-rose-100 font-bold',
         chkStyle: 'border-rose-400 hover:border-rose-300 hover:bg-rose-500/25 text-rose-300',
         indicatorIcon: '🔥'
@@ -278,9 +289,12 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
     if (daysLeft <= 10) {
       return {
         daysLeft,
-        badgeText: `${daysLeft} Hari (Segera)`,
-        badgeStyle: 'bg-amber-500 text-white border border-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.7)]',
+        isMepet: false,
+        label: 'Segera',
+        badgeText: `${daysLeft} Hari Lagi (Segera)`,
+        badgeStyle: 'bg-amber-500 text-white border border-amber-300 shadow-xs font-bold',
         cardStyle: 'border-2 border-amber-500 bg-amber-950/70 hover:bg-amber-900/60 shadow-md shadow-amber-950/50',
+        borderAccent: 'border-l-4 border-l-amber-500',
         titleColor: 'text-amber-100 font-bold',
         chkStyle: 'border-amber-400 hover:border-amber-300 hover:bg-amber-500/25 text-amber-300',
         indicatorIcon: '⚡'
@@ -289,19 +303,25 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
     if (daysLeft <= 15) {
       return {
         daysLeft,
-        badgeText: `${daysLeft} Hari (Siap2)`,
-        badgeStyle: 'bg-emerald-600 text-white border border-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.7)]',
+        isMepet: false,
+        label: 'Siap2',
+        badgeText: `${daysLeft} Hari Lagi (Siap2)`,
+        badgeStyle: 'bg-emerald-600 text-white border border-emerald-300 shadow-xs font-bold',
         cardStyle: 'border-2 border-emerald-500 bg-emerald-950/70 hover:bg-emerald-900/60 shadow-md shadow-emerald-950/50',
+        borderAccent: 'border-l-4 border-l-emerald-500',
         titleColor: 'text-emerald-100 font-bold',
         chkStyle: 'border-emerald-400 hover:border-emerald-300 hover:bg-emerald-500/25 text-emerald-300',
-        indicatorIcon: '🌱'
+        indicatorIcon: '⏳'
       };
     }
     return {
       daysLeft,
-      badgeText: `${daysLeft} Hari (Masih Lama)`,
-      badgeStyle: 'bg-sky-600 text-white border border-sky-300 shadow-[0_0_10px_rgba(14,165,233,0.7)]',
+      isMepet: false,
+      label: 'Masih Lama',
+      badgeText: `${daysLeft} Hari Lagi (Masih Lama)`,
+      badgeStyle: 'bg-sky-600 text-white border border-sky-300 shadow-xs font-semibold',
       cardStyle: 'border-2 border-sky-500 bg-sky-950/70 hover:bg-sky-900/60 shadow-md shadow-sky-950/50',
+      borderAccent: 'border-l-4 border-l-sky-500',
       titleColor: 'text-sky-100 font-semibold',
       chkStyle: 'border-sky-400 hover:border-sky-300 hover:bg-sky-500/25 text-sky-300',
       indicatorIcon: '📅'
@@ -424,15 +444,15 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* Kalender Bulanan */}
-      <section className="lg:col-span-8 bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-7 shadow-sm border border-slate-200/90 dark:border-slate-800 flex flex-col justify-between">
+      <section className="lg:col-span-8 bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-7 shadow-sm border border-slate-200/90 dark:border-slate-800 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-sky-300/60 dark:hover:border-sky-700/60">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <span className="w-1.5 h-10 rounded-full bg-cyan-500 dark:bg-cyan-400 shrink-0" />
-            <div className="w-10 h-10 rounded-2xl bg-cyan-50 dark:bg-cyan-950/70 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0">
+            <span className="w-1.5 h-10 rounded-full bg-rose-500 shrink-0" />
+            <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-950/70 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
               <CalendarIcon className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-600 dark:text-cyan-400">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-600 dark:text-rose-400">
                 Agenda & Kalender
               </p>
               <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-tight">
@@ -514,6 +534,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
             const hasPendingTasks = totalPending > 0;
             const hasAnyTasksOnDate = myDailyList.length > 0 || myScheduledList.length > 0;
             const isHovered = hoveredCellDate === cellDateStr;
+            const isAllCompleted = myDailyList.length > 0 && pendingMyDaily.length === 0 && pendingScheduled.length === 0;
 
             let cellClasses = 'relative min-h-[64px] sm:min-h-[74px] p-1.5 sm:p-2 rounded-2xl transition-all cursor-pointer flex flex-col justify-between ';
             if (isHovered) {
@@ -523,22 +544,30 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
             }
 
             // Desain Warna Kalender:
-            // 1. Hari Aktif: Biru Laut Menyala Kedip (Gradient Cyan/Sky/Blue glowing & pulsing)
-            // 2. Hari Ini (belum dipilih): Aksen Sky elegan dengan badge Hari Ini
-            // 3. Tanggal Lainnya: Border netral bersih (garis pinggir merah pada tugas belum selesai dihilangkan)
+            // 1. Hari Aktif Terpilih: Biru Langit Menyala (Cyan/Sky/Blue glowing & pulsing) - Sesuai Permintaan User
+            // 2. Semua Tugas Selesai (Centang Hijau): Kotak tanggal menjadi Hijau Tipis
+            // 3. Hari Ini (belum dipilih): Aksen Rose elegan dengan badge Hari Ini
+            // 4. Tanggal Lainnya: Border netral bersih
             if (isSelected) {
               cellClasses += ' bg-gradient-to-br from-cyan-500 via-sky-500 to-blue-600 text-white border-2 border-cyan-200 shadow-[0_0_22px_rgba(6,182,212,0.95)] ring-2 ring-cyan-300 animate-pulse ';
+            } else if (isAllCompleted) {
+              if (isToday) {
+                cellClasses += ' bg-emerald-50/90 dark:bg-emerald-950/40 border-2 border-emerald-500 dark:border-emerald-400 shadow-xs ring-1 ring-emerald-300 dark:ring-emerald-500 ';
+              } else {
+                cellClasses += ' bg-emerald-50/80 dark:bg-emerald-950/35 border-2 border-emerald-300/90 dark:border-emerald-700/80 shadow-xs hover:bg-emerald-100/70 dark:hover:bg-emerald-950/50 ';
+              }
             } else if (isToday) {
-              cellClasses += ' bg-sky-50/50 dark:bg-sky-950/20 border-2 border-sky-500/80 dark:border-sky-400/80 shadow-xs ';
+              cellClasses += ' bg-rose-50/50 dark:bg-rose-950/20 border-2 border-rose-500/80 dark:border-rose-400/80 shadow-xs ';
             } else {
-              // Garis pinggir merah pada tugas belum selesai dihilangkan sesuai permintaan user
-              cellClasses += ' bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-100/70 dark:hover:bg-slate-800/80 ';
+              cellClasses += ' bg-sky-50/60 dark:bg-sky-950/25 border border-sky-200/60 dark:border-sky-900/40 hover:border-sky-300 dark:hover:border-sky-700 hover:bg-sky-100/60 dark:hover:bg-sky-900/35 ';
             }
 
             // Angka Pada Tanggal: Dibuat BOLD semua sesuai permintaan user
             let dayColorClass = '';
             if (isSelected) {
               dayColorClass = 'text-white font-black text-xs sm:text-sm drop-shadow-md';
+            } else if (isAllCompleted) {
+              dayColorClass = 'text-emerald-700 dark:text-emerald-300 font-black text-xs sm:text-sm';
             } else if (dayOfWeek === 0 || isNationalHoliday) {
               dayColorClass = 'text-rose-600 dark:text-rose-400 font-extrabold text-xs sm:text-sm';
             } else {
@@ -552,70 +581,88 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                 onClick={() => onSelectDate(currentViewYear, currentViewMonth, day)}
                 onMouseEnter={() => {
                   // Tugas yang sudah selesai / centang hijau TIDAK PERLU menampilkan popup lagi
-                  if (hasPendingTasks) handleCellMouseEnter(cellDateStr);
+                  if (hasPendingTasks && addingTaskDate !== cellDateStr) handleCellMouseEnter(cellDateStr);
                 }}
                 onMouseLeave={handleCellMouseLeave}
               >
-                {/* Baris Atas: Tanggal (BOLD) & Badge Hari Ini */}
+                {/* Baris Atas: Tanggal (BOLD), Tombol Tambah Tugas Cepat, & Badge Hari Ini */}
                 <div className="flex items-center justify-between text-xs sm:text-sm">
                   <span className={dayColorClass}>{day}</span>
-                  {isToday && !isSelected && (
-                    <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-cyan-500 text-white shadow-2xs">
-                      Hari Ini
-                    </span>
-                  )}
-                  {isSelected && (
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-white/25 text-white border border-white/40 shadow-xs uppercase tracking-wider">
-                      Aktif
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setHoveredCellDate(null);
+                        setAddingTaskDate(addingTaskDate === cellDateStr ? null : cellDateStr);
+                      }}
+                      title="Tambah tugas harian di tanggal ini"
+                      className={`p-0.5 rounded-md transition-all cursor-pointer ${
+                        addingTaskDate === cellDateStr
+                          ? 'bg-rose-500 text-white shadow-xs'
+                          : isSelected
+                          ? 'text-white/80 hover:text-white hover:bg-white/20'
+                          : 'text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-700/60 opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                    {isToday && !isSelected && (
+                      <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-rose-500 text-white shadow-2xs">
+                        Hari Ini
+                      </span>
+                    )}
+                    {isSelected && (
+                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-white/25 text-white border border-white/40 shadow-xs uppercase tracking-wider">
+                        Aktif
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Baris Bawah: Indikator Libur / Ikon Tugas Belum Selesai Kedip2 Menyala / Ikon Centang Hijau Besar */}
                 <div className="mt-1">
                   {isNationalHoliday && (
-                    <p className={`text-[9px] font-bold truncate ${isSelected ? 'text-cyan-100' : 'text-rose-500 dark:text-rose-400'}`} title={holidayName}>
+                    <p className={`text-[9px] font-bold truncate ${isSelected ? 'text-cyan-100' : isAllCompleted ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`} title={holidayName}>
                       {holidayName}
                     </p>
                   )}
 
                   <div className="flex items-center gap-1 flex-wrap justify-end mt-1">
-                    {/* 1. IKON TUGAS HARIAN BELUM SELESAI: KEDIP MENYALA HANYA PADA HARI INI */}
+                    {/* 1. IKON TUGAS HARIAN BELUM SELESAI: Desain baru keren, modern, dan TIDAK berkedip */}
                     {pendingMyDaily.length > 0 && (
                       <span
-                        className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-black shadow-md ${
-                          isToday
-                            ? isSelected
-                              ? 'animate-pulse bg-white text-cyan-950 ring-2 ring-white shadow-[0_0_10px_rgba(255,255,255,0.9)]'
-                              : 'animate-pulse bg-rose-500 text-white shadow-[0_0_10px_rgba(244,63,94,0.9)] ring-1 ring-rose-300 dark:ring-rose-400'
-                            : isSelected
-                            ? 'bg-white text-cyan-950 ring-1 ring-white/60 shadow-xs'
-                            : 'bg-rose-500/90 text-white shadow-xs'
+                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[9px] font-black shadow-xs transition-all ${
+                          isSelected
+                            ? 'bg-white text-rose-700 shadow-sm ring-1 ring-white/80'
+                            : isToday
+                            ? 'bg-rose-500 text-white border border-rose-300 dark:border-rose-400 shadow-xs'
+                            : 'bg-rose-500/95 text-white border border-rose-400/60 shadow-xs'
                         }`}
                         title={`${pendingMyDaily.length} Tugas Harian Belum Selesai`}
                       >
-                        <ClipboardList className={`w-2.5 h-2.5 ${isToday ? 'animate-bounce' : ''}`} />
+                        <ListTodo className="w-3 h-3 stroke-[2.2]" />
                         <span>{pendingMyDaily.length}</span>
                       </span>
                     )}
 
-                    {/* 2. IKON CATATAN JANGAN SAMPAI LUPA: KEDIP MENYALA HANYA PADA HARI INI JIKA ADA BELUM SELESAI */}
+                    {/* 2. IKON CATATAN JANGAN SAMPAI LUPA: Desain baru keren, modern, dan TIDAK berkedip */}
                     {myScheduledList.length > 0 && (
                       <span
-                        className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-black shadow-md ${
+                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[9px] font-bold shadow-xs transition-all ${
                           pendingScheduled.length > 0
-                            ? isToday
-                              ? isSelected
-                                ? 'animate-pulse bg-amber-300 text-amber-950 ring-2 ring-amber-200 shadow-[0_0_10px_rgba(251,191,36,0.9)]'
-                                : 'animate-pulse bg-amber-500 text-white shadow-[0_0_10px_rgba(245,158,11,0.9)] ring-1 ring-amber-300 dark:ring-amber-400'
-                              : isSelected
-                              ? 'bg-amber-300 text-amber-950 ring-1 ring-amber-200/60 shadow-xs'
-                              : 'bg-amber-500/90 text-white shadow-xs'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700 font-medium'
+                            ? isSelected
+                              ? pendingScheduled.some(t => calculateDaysRemaining(t.deadline) <= 5)
+                                ? 'bg-rose-600 text-white ring-1 ring-white/70 shadow-sm font-black'
+                                : 'bg-white/25 text-white ring-1 ring-white/50 backdrop-blur-xs'
+                              : pendingScheduled.some(t => calculateDaysRemaining(t.deadline) <= 5)
+                              ? 'bg-rose-600 text-white border border-rose-400/80 shadow-xs font-black'
+                              : 'bg-slate-700 dark:bg-slate-700 text-white border border-slate-500/70'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
                         }`}
                         title={`${myScheduledList.length} Catatan Jangan Sampai Lupa (${pendingScheduled.length} belum)`}
                       >
-                        <Bell className={`w-2.5 h-2.5 ${pendingScheduled.length > 0 && isToday ? 'animate-bounce' : ''}`} />
+                        <CalendarClock className="w-3 h-3 stroke-[2.2]" />
                         <span>{myScheduledList.length}</span>
                       </span>
                     )}
@@ -634,13 +681,13 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                   </div>
                 </div>
 
-                {/* POPUP INTERAKTIF: HANYA MUNCUL JIKA ADA TUGAS BELUM SELESAI (TIDAK MUNCUL JIKA TUNTAS) */}
-                {isHovered && hasPendingTasks && (
+                {/* 1. POPUP HOVER: HANYA UNTUK MENAMPILKAN TUGAS BELUM SELESAI */}
+                {isHovered && hasPendingTasks && addingTaskDate !== cellDateStr && (
                   <div
                     onMouseEnter={handlePopupMouseEnter}
                     onMouseLeave={handlePopupMouseLeave}
                     onClick={(e) => e.stopPropagation()}
-                    className={`absolute z-50 pointer-events-auto cursor-default w-76 sm:w-88 md:w-96 p-3.5 sm:p-4 rounded-3xl bg-slate-950/95 text-white backdrop-blur-2xl shadow-2xl border border-slate-700/80 animate-pop-check text-left ${
+                    className={`absolute z-50 pointer-events-auto cursor-default w-76 sm:w-88 md:w-96 p-3.5 sm:p-4 rounded-3xl bg-slate-950/95 text-white backdrop-blur-2xl shadow-2xl border border-sky-500/40 animate-pop-check text-left ${
                       day <= 7 ? 'top-full mt-2' : 'bottom-full mb-2'
                     } ${
                       dayOfWeek <= 1
@@ -650,7 +697,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                         : 'left-1/2 -translate-x-1/2'
                     }`}
                   >
-                    {/* Header Popup Tanggal */}
+                    {/* Header Popup Tanggal: Berwarna Biru Sesuai Permintaan */}
                     <div className="flex items-center justify-between pb-2.5 border-b border-slate-700/80 gap-2">
                       <div className="min-w-0">
                         <p className="text-xs sm:text-sm font-black text-sky-400 flex items-center gap-1.5 truncate">
@@ -658,7 +705,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                           <span>{dayNamesFull[dayOfWeek]}, {day} {shortMonthNames[currentViewMonth]} {currentViewYear}</span>
                         </p>
                       </div>
-                      <span className="px-2.5 py-1 rounded-full bg-rose-500/25 text-rose-300 border border-rose-500/40 text-[10px] font-black shrink-0 flex items-center gap-1 shadow-sm">
+                      <span className="px-2.5 py-1 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/40 text-[10px] font-black shrink-0 flex items-center gap-1 shadow-sm">
                         <span>⚠️</span>
                         <span>{totalPending} Belum Selesai</span>
                       </span>
@@ -673,22 +720,22 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                     )}
 
                     {/* ========================================================
-                        TUGAS HARIAN (Tema Biru Laut / Cyan)
+                        TUGAS HARIAN (Tema Merah / Rose - Konsisten dengan Ikon)
                        ======================================================== */}
                     {pendingMyDaily.length > 0 && (
-                      <div className="mt-3 p-3 rounded-2xl bg-gradient-to-br from-sky-950/90 via-slate-900 to-cyan-950/90 border-2 border-cyan-500/60 shadow-lg">
-                        <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-cyan-500/30">
+                      <div className="mt-3 p-3 rounded-2xl bg-gradient-to-br from-rose-950/90 via-slate-900 to-red-950/90 border-2 border-rose-500/70 shadow-lg">
+                        <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-rose-500/30">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 flex items-center justify-center shrink-0">
+                            <div className="w-6 h-6 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-400/50 flex items-center justify-center shrink-0">
                               <ClipboardList className="w-3.5 h-3.5" />
                             </div>
                             <div>
-                              <p className="text-[11px] font-black uppercase tracking-wider text-cyan-300 leading-none">
+                              <p className="text-[11px] font-black uppercase tracking-wider text-rose-300 leading-none">
                                 Tugas Harian
                               </p>
                             </div>
                           </div>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/25 text-cyan-200 border border-cyan-400/40 shrink-0">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/25 text-rose-200 border border-rose-400/40 shrink-0">
                             {pendingMyDaily.length} Belum
                           </span>
                         </div>
@@ -696,7 +743,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                           {pendingMyDaily.map((task) => (
                             <div
                               key={task.id}
-                              className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-cyan-500/30 hover:border-cyan-400/70 flex items-center justify-between gap-2 text-xs transition-colors group"
+                              className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-rose-500/30 hover:border-rose-400/70 flex items-center justify-between gap-2 text-xs transition-colors group"
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <button
@@ -705,7 +752,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                                     e.stopPropagation();
                                     if (onToggleDailyTask) onToggleDailyTask(task.id);
                                   }}
-                                  className="w-5 h-5 rounded-md border-2 border-cyan-400/70 hover:border-cyan-300 hover:bg-cyan-500/25 text-cyan-300 flex items-center justify-center transition-all cursor-pointer active:scale-90 shrink-0 group/chk"
+                                  className="w-5 h-5 rounded-md border-2 border-rose-400/70 hover:border-rose-300 hover:bg-rose-500/25 text-rose-300 flex items-center justify-center transition-all cursor-pointer active:scale-90 shrink-0 group/chk"
                                   title="Centang selesai (langsung hilang dari daftar)"
                                 >
                                   <Check className="w-3.5 h-3.5 opacity-0 group-hover/chk:opacity-100 transition-opacity" />
@@ -714,7 +761,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                                   {task.title}
                                 </span>
                               </div>
-                              <span className="text-[9px] text-cyan-300 font-bold opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                              <span className="text-[9px] text-rose-300 font-bold opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                 Tuntas ✓
                               </span>
                             </div>
@@ -724,22 +771,22 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                     )}
 
                     {/* ========================================================
-                        TUGAS TERJADWAL & CATATAN (Warna Sesuai Progres Deadline)
+                        TUGAS TERJADWAL & CATATAN (Netral Putih dengan Fitur & Status Lengkap Sesuai Catatan Jangan Sampai Lupa)
                        ======================================================== */}
                     {pendingScheduled.length > 0 && (
-                      <div className="mt-2.5 p-3 rounded-2xl bg-gradient-to-br from-slate-900/95 via-slate-950 to-slate-900/95 border-2 border-slate-700/80 shadow-lg">
-                        <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-700/80">
+                      <div className="mt-2.5 p-3 rounded-2xl bg-white/5 border border-white/15 backdrop-blur-md shadow-lg">
+                        <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-400/50 flex items-center justify-center shrink-0">
-                              <Bell className="w-3.5 h-3.5" />
+                            <div className="w-6 h-6 rounded-lg bg-white/10 text-white border border-white/20 flex items-center justify-center shrink-0">
+                              <CalendarClock className="w-3.5 h-3.5 text-white" />
                             </div>
                             <div>
-                              <p className="text-[11px] font-black uppercase tracking-wider text-amber-300 leading-none">
+                              <p className="text-[11px] font-black uppercase tracking-wider text-white leading-none">
                                 Tugas Terjadwal & Catatan
                               </p>
                             </div>
                           </div>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-200 border border-amber-400/40 shrink-0">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-white border border-white/20 shrink-0">
                             {pendingScheduled.length} Belum
                           </span>
                         </div>
@@ -750,7 +797,11 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                             return (
                               <div
                                 key={task.id}
-                                className={`p-2.5 rounded-xl ${status.cardStyle} flex flex-col gap-1.5 text-xs transition-colors group`}
+                                className={`p-2.5 rounded-xl ${
+                                  status.isMepet
+                                    ? 'task-mepet-deadline-pulse bg-rose-950/60 border border-rose-500/70'
+                                    : 'bg-white/10 hover:bg-white/15 border border-white/20'
+                                } ${status.borderAccent} flex flex-col gap-1.5 text-xs transition-colors group text-white shadow-xs`}
                               >
                                 <div className="flex items-center justify-between gap-1.5">
                                   <div className="flex items-center gap-2.5 min-w-0">
@@ -760,17 +811,17 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                                         e.stopPropagation();
                                         if (onToggleScheduledTask) onToggleScheduledTask(task.id);
                                       }}
-                                      className={`w-5 h-5 rounded-md border-2 ${status.chkStyle} flex items-center justify-center transition-all cursor-pointer active:scale-90 shrink-0 group/chk`}
-                                      title="Centang selesai (langsung hilang & otomatis berulang ke periode berikutnya jika diset berulang)"
+                                      className="w-5 h-5 rounded-md border-2 border-white/60 hover:border-white hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer active:scale-90 shrink-0 group/chk"
+                                      title="Centang selesai"
                                     >
                                       <Check className="w-3.5 h-3.5 opacity-0 group-hover/chk:opacity-100 transition-opacity" />
                                     </button>
-                                    <span className={`${status.titleColor} leading-snug line-clamp-2 flex items-center gap-1.5`}>
+                                    <span className="font-extrabold text-white leading-snug line-clamp-2 flex items-center gap-1.5">
                                       <span className="shrink-0">{status.indicatorIcon}</span>
                                       <span>{task.title}</span>
                                     </span>
                                   </div>
-                                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ${status.badgeStyle}`}>
+                                  <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full shrink-0 flex items-center gap-1 ${status.badgeStyle}`}>
                                     {status.badgeText}
                                   </span>
                                 </div>
@@ -781,7 +832,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                                   </div>
                                 )}
                                 {task.notes && (
-                                  <div className="text-[11px] text-slate-200 bg-black/40 p-1.5 rounded-lg border border-white/10 mt-0.5 ml-7">
+                                  <div className="text-[11px] text-white/95 bg-black/40 p-1.5 rounded-lg border border-white/10 mt-0.5 ml-7">
                                     <span className="font-semibold text-slate-300">Ket:</span> {task.notes}
                                   </div>
                                 )}
@@ -791,6 +842,89 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* 2. POPUP TAMBAH TUGAS HARIAN: HANYA MUNCUL KETIKA TOMBOL "+" KECIL DIKLIK */}
+                {addingTaskDate === cellDateStr && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className={`absolute z-50 pointer-events-auto cursor-default w-72 sm:w-80 p-3.5 rounded-3xl bg-slate-950/98 text-white backdrop-blur-2xl shadow-2xl border-2 border-rose-500/80 animate-pop-check text-left ${
+                      day <= 7 ? 'top-full mt-2' : 'bottom-full mb-2'
+                    } ${
+                      dayOfWeek <= 1
+                        ? 'left-0'
+                        : dayOfWeek >= 5
+                        ? 'right-0'
+                        : 'left-1/2 -translate-x-1/2'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-700/80">
+                      <div className="flex items-center gap-1.5 text-xs font-black text-rose-400">
+                        <Plus className="w-3.5 h-3.5 text-rose-400" />
+                        <span>Tambah Tugas ({day} {shortMonthNames[currentViewMonth]})</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAddingTaskDate(null);
+                        }}
+                        className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                        title="Tutup"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const text = (quickTaskTitles[cellDateStr] || '').trim();
+                        if (!text) return;
+                        if (onAddDailyTask) {
+                          onAddDailyTask(text, cellDateStr, 'medium');
+                          setQuickTaskTitles(prev => ({ ...prev, [cellDateStr]: '' }));
+                          setAddingTaskDate(null);
+                        }
+                      }}
+                      className="mt-3 space-y-2.5"
+                    >
+                      <input
+                        autoFocus
+                        type="text"
+                        value={quickTaskTitles[cellDateStr] || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setQuickTaskTitles(prev => ({ ...prev, [cellDateStr]: val }));
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        placeholder="Ketik tugas harian lalu Enter..."
+                        className="w-full bg-slate-900 text-white placeholder:text-slate-500 text-xs rounded-xl px-3 py-2 border border-rose-500/50 focus:border-rose-400 focus:ring-1 focus:ring-rose-400 focus:outline-hidden"
+                      />
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAddingTaskDate(null);
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl text-slate-400 hover:text-white text-xs font-medium cursor-pointer"
+                        >
+                          Batal
+                        </button>
+                        <button
+                          type="submit"
+                          onClick={(e) => e.stopPropagation()}
+                          disabled={!(quickTaskTitles[cellDateStr] || '').trim()}
+                          className="px-3.5 py-1.5 bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer flex items-center gap-1"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Tambah</span>
+                        </button>
+                      </div>
+                    </form>
                   </div>
                 )}
               </div>
@@ -837,64 +971,90 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
         </div>
 
         {/* Progres Harian */}
-        <div className="bg-gradient-to-br from-emerald-100/90 via-teal-50/80 to-emerald-50/60 dark:from-emerald-950/60 dark:via-slate-900 dark:to-teal-950/40 rounded-2xl p-3.5 shadow-sm border-2 border-emerald-300/80 dark:border-emerald-800/80 transition-all hover:shadow-md">
+        <div className={`bg-gradient-to-br from-emerald-100/90 via-teal-50/80 to-emerald-50/60 dark:from-emerald-950/60 dark:via-slate-900 dark:to-teal-950/40 rounded-2xl p-3.5 shadow-sm border-2 border-emerald-300/80 dark:border-emerald-800/80 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-lg hover:border-emerald-400 ${
+          dailyPct === 100 && totalDaily > 0 ? 'animate-celebrate-glow' : ''
+        }`}>
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <span className="w-1.5 h-6 rounded-full bg-emerald-500 shrink-0" />
-              <div className="w-7 h-7 rounded-lg bg-emerald-500 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                <Zap className="w-3.5 h-3.5" />
+              <div className="w-7 h-7 rounded-lg bg-emerald-500 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+                {dailyPct === 100 && totalDaily > 0 ? (
+                  <Sparkles className="w-4 h-4 text-white animate-spin" style={{ animationDuration: '4s' }} />
+                ) : (
+                  <Zap className="w-3.5 h-3.5" />
+                )}
               </div>
-              <div>
-                <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100">Progres Harian</h4>
-                <p className="text-[10px] text-slate-600 dark:text-slate-400 font-body">
+              <div className="min-w-0">
+                <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 truncate">Progres Harian</h4>
+                <p className="text-[10px] text-slate-600 dark:text-slate-400 font-body truncate">
                   {completedDaily} dari {totalDaily} tugas beres
                 </p>
               </div>
             </div>
-            <span className="text-base sm:text-lg font-black text-emerald-700 dark:text-emerald-300 font-sans">
+            <motion.span
+              key={dailyPct}
+              initial={{ scale: 1.2 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.25 }}
+              className="text-base sm:text-lg font-black text-emerald-700 dark:text-emerald-300 font-sans shrink-0"
+            >
               {dailyPct}%
-            </span>
+            </motion.span>
           </div>
 
-          <div className="w-full h-2.5 bg-white/80 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-emerald-200 dark:border-slate-700">
-            <div
-              className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-700 ease-out shadow-sm"
-              style={{ width: `${dailyPct}%` }}
-            />
+          <div className="w-full h-3 bg-white/80 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-emerald-200 dark:border-slate-700 relative shadow-inner">
+            <motion.div
+              className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-green-500 rounded-full shadow-sm relative overflow-hidden"
+              initial={{ width: 0 }}
+              animate={{ width: `${dailyPct}%` }}
+              transition={{ type: 'spring', stiffness: 80, damping: 14 }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-full h-full animate-progress-shimmer pointer-events-none" />
+            </motion.div>
           </div>
 
           <div className="mt-2 flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 font-body">
             <span>{completedDaily}/{totalDaily} Tugas Saya</span>
             <span className="w-1 h-1 rounded-full bg-emerald-400 dark:bg-slate-700" />
             <span className="font-semibold text-emerald-700 dark:text-emerald-300">
-              {dailyPct === 100 && totalDaily > 0 ? 'Luar biasa! 100%' : 'Terus maju!'}
+              {dailyPct === 100 && totalDaily > 0 ? 'Luar biasa! 100% 🎉' : 'Terus maju!'}
             </span>
           </div>
         </div>
 
         {/* Progres Bulanan */}
-        <div className="bg-gradient-to-br from-blue-100/90 via-indigo-50/80 to-sky-50/60 dark:from-blue-950/60 dark:via-slate-900 dark:to-indigo-950/40 rounded-2xl p-3.5 shadow-sm border-2 border-blue-300/80 dark:border-blue-800/80 transition-all hover:shadow-md">
+        <div className="bg-gradient-to-br from-blue-100/90 via-indigo-50/80 to-sky-50/60 dark:from-blue-950/60 dark:via-slate-900 dark:to-indigo-950/40 rounded-2xl p-3.5 shadow-sm border-2 border-blue-300/80 dark:border-blue-800/80 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-lg hover:border-blue-400">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <span className="w-1.5 h-6 rounded-full bg-blue-500 shrink-0" />
-              <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+              <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
                 <Target className="w-3.5 h-3.5" />
               </div>
-              <div>
-                <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100">Progres Bulanan</h4>
-                <p className="text-[10px] text-slate-600 dark:text-slate-400 font-body">Pencapaian bulan ini</p>
+              <div className="min-w-0">
+                <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 truncate">Progres Bulanan</h4>
+                <p className="text-[10px] text-slate-600 dark:text-slate-400 font-body truncate">Pencapaian bulan ini</p>
               </div>
             </div>
-            <span className="text-base sm:text-lg font-black text-blue-700 dark:text-blue-300 font-sans">
+            <motion.span
+              key={monthlyPct}
+              initial={{ scale: 1.2 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.25 }}
+              className="text-base sm:text-lg font-black text-blue-700 dark:text-blue-300 font-sans shrink-0"
+            >
               {monthlyPct}%
-            </span>
+            </motion.span>
           </div>
 
-          <div className="w-full h-2.5 bg-white/80 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-blue-200 dark:border-slate-700">
-            <div
-              className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-700 ease-out shadow-sm"
-              style={{ width: `${monthlyPct}%` }}
-            />
+          <div className="w-full h-3 bg-white/80 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-blue-200 dark:border-slate-700 relative shadow-inner">
+            <motion.div
+              className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-sky-500 rounded-full shadow-sm relative overflow-hidden"
+              initial={{ width: 0 }}
+              animate={{ width: `${monthlyPct}%` }}
+              transition={{ type: 'spring', stiffness: 80, damping: 14 }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-full h-full animate-progress-shimmer pointer-events-none" />
+            </motion.div>
           </div>
 
           <div className="mt-2 flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 font-body">
@@ -904,7 +1064,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
         </div>
 
         {/* Fokus Timer Interaktif Samping Tanggal - Pilihan Tema Warna */}
-        <div className={`bg-gradient-to-br ${currentTheme.cardBg} border-2 ${currentTheme.cardBorder} rounded-2xl p-3.5 shadow-sm space-y-2.5 transition-all`}>
+        <div className={`bg-gradient-to-br ${currentTheme.cardBg} border-2 ${currentTheme.cardBorder} rounded-2xl p-3.5 shadow-sm space-y-2.5 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-lg`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className={`w-1.5 h-6 rounded-full ${currentTheme.accentBar} shrink-0`} />

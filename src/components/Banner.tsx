@@ -29,7 +29,7 @@ export const Banner: React.FC<BannerProps> = ({
         <div className="space-y-3 max-w-3xl w-full">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-medium text-sky-200">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            Afirmasi Harian Pak Margono
+            Afirmasi Harian Margono wibowo
           </div>
 
           <div className="space-y-2">

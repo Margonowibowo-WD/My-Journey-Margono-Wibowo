@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Check, Eye, EyeOff } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Check, Eye, EyeOff, Sparkles } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Habit } from '../types';
 import { formatDateKey } from '../utils/initialData';
@@ -14,6 +14,7 @@ interface HabitTrackerProps {
   onEditHabit: (habit: Habit) => void;
   onDeleteHabit: (habitId: string) => void;
   onOpenAddHabitModal: () => void;
+  forceExpanded?: boolean;
 }
 
 export const normalizeHabitColor = (color: string): string => {
@@ -41,15 +42,26 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
   onToggleHabitDay,
   onEditHabit,
   onDeleteHabit,
-  onOpenAddHabitModal
+  onOpenAddHabitModal,
+  forceExpanded
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(forceExpanded !== undefined ? !forceExpanded : true);
+
+  useEffect(() => {
+    if (forceExpanded !== undefined) {
+      setIsCollapsed(!forceExpanded);
+    }
+  }, [forceExpanded]);
   const daysInMonth = new Date(currentViewYear, currentViewMonth + 1, 0).getDate();
   const todayStr = formatDateKey(todayDate);
   const selectedStr = formatDateKey(selectedDate);
 
+  // Progres Habit Harian untuk tanggal aktif
+  const completedHabitsCount = habits.filter(h => !!(h.completions && h.completions[selectedStr])).length;
+  const habitDailyPct = habits.length > 0 ? Math.round((completedHabitsCount / habits.length) * 100) : 0;
+
   return (
-    <section className="bg-gradient-to-br from-emerald-100/90 via-teal-50/80 to-emerald-50/70 dark:from-emerald-950/60 dark:via-slate-900 dark:to-teal-950/40 rounded-3xl p-5 sm:p-7 shadow-sm border-2 border-emerald-300 dark:border-emerald-700/80 space-y-4">
+    <section className="bg-gradient-to-br from-emerald-100/90 via-teal-50/80 to-emerald-50/70 dark:from-emerald-950/60 dark:via-slate-900 dark:to-teal-950/40 rounded-3xl p-5 sm:p-7 shadow-sm border-2 border-emerald-300 dark:border-emerald-700/80 space-y-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-emerald-400 dark:hover:border-emerald-600">
       {/* Header Utama Section */}
       <div className="flex items-center justify-between gap-3 pb-3 border-b-2 border-emerald-200/80 dark:border-emerald-900/60">
         <div className="flex items-center gap-3 min-w-0">
@@ -105,19 +117,88 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             className="overflow-hidden space-y-4 pt-1"
           >
-            {/* Baris Tombol Tambah Kebiasaan */}
-            <div className="flex justify-end">
+            {/* Baris Tombol Tambah Kebiasaan & Bar Status */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                  Tanggal Aktif: <strong>{selectedDate.getDate()} {monthNames[selectedDate.getMonth()]} {selectedDate.getFullYear()}</strong>
+                </span>
+              </div>
               <button
                 onClick={onOpenAddHabitModal}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-md shadow-emerald-500/20 active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-md shadow-emerald-500/20 active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer self-end sm:self-auto hover:-translate-y-0.5"
               >
                 <Plus className="w-4 h-4" />
                 Tambah Kebiasaan Baru
               </button>
             </div>
 
+            {/* Animasi Progress Bar Halus & Memuaskan Saat Habit Harian Diselesaikan */}
+            {habits.length > 0 && (
+              <div className={`p-3.5 rounded-2xl border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${
+                habitDailyPct === 100
+                  ? 'bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 shadow-sm animate-celebrate-glow'
+                  : 'bg-white/90 dark:bg-slate-900/90 border-emerald-200/80 dark:border-emerald-900/50'
+              }`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs mb-2">
+                  <div className="flex items-center gap-2 font-bold min-w-0">
+                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs shadow-2xs shrink-0 ${
+                      habitDailyPct === 100
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
+                    }`}>
+                      {habitDailyPct === 100 ? '🎉' : '✨'}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-extrabold text-slate-900 dark:text-white leading-tight truncate">
+                        {habitDailyPct === 100
+                          ? 'Semua Habit Hari Ini Tuntas Sempurna! Konsistensi Juara! 🏆'
+                          : `Progres Habit Harian (${selectedDate.getDate()} ${monthNames[selectedDate.getMonth()]})`}
+                      </p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                        {completedHabitsCount} dari {habits.length} kebiasaan telah diceklis
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                    <motion.span
+                      key={habitDailyPct}
+                      initial={{ scale: 1.25 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.25 }}
+                      className={`font-black text-xs font-mono px-2.5 py-0.5 rounded-full shadow-2xs border ${
+                        habitDailyPct === 100
+                          ? 'bg-emerald-500 text-white border-emerald-400 shadow-emerald-500/20'
+                          : 'bg-slate-100 dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-slate-700'
+                      }`}
+                    >
+                      {habitDailyPct}%
+                    </motion.span>
+                  </div>
+                </div>
+
+                {/* Bar Track & Animated Fill */}
+                <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-slate-700 shadow-inner relative">
+                  <motion.div
+                    className={`h-full rounded-full relative overflow-hidden shadow-xs ${
+                      habitDailyPct === 100
+                        ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-green-500 shadow-emerald-400/40'
+                        : 'bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-500 shadow-emerald-500/30'
+                    }`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${habitDailyPct}%` }}
+                    transition={{ type: 'spring', stiffness: 80, damping: 14 }}
+                  >
+                    {/* Shimmer sweep animation over bar */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-full h-full animate-progress-shimmer pointer-events-none" />
+                  </motion.div>
+                </div>
+              </div>
+            )}
+
             {/* MATRIX TABLE */}
-            <div className="overflow-x-auto rounded-2xl border border-emerald-300/80 dark:border-emerald-800/80 bg-white/95 dark:bg-slate-900/95 shadow-xs">
+            <div className="overflow-x-auto rounded-2xl border border-emerald-300/80 dark:border-emerald-800/80 bg-white/95 dark:bg-slate-900/95 shadow-xs transition-all duration-200 hover:shadow-md">
               <div className="min-w-[780px] p-4">
                 {/* Header Row */}
                 <div

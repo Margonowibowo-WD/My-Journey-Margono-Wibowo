@@ -93,23 +93,48 @@ html.dark .glass-panel {
 .glow-saturday { animation: border-glow-pulse-saturday 2.2s infinite ease-in-out; }
 .glow-weekday { animation: border-glow-pulse-weekday 2.2s infinite ease-in-out; }
 
+/* Efek Hijau Menyala untuk Hari Ini di Kalender */
+@keyframes today-green-glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.7), inset 0 0 5px rgba(16, 185, 129, 0.25);
+    border-color: #10b981;
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.95), 0 0 30px rgba(52, 211, 153, 0.45), inset 0 0 8px rgba(16, 185, 129, 0.4);
+    border-color: #34d399;
+  }
+}
+.today-green-glow {
+  border-width: 2px !important;
+  border-color: #10b981 !important;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.75), inset 0 0 5px rgba(16, 185, 129, 0.3) !important;
+  animation: today-green-glow-pulse 2s infinite ease-in-out;
+}
+
 @keyframes pending-border-blink {
-  0%, 100% { border-color: #f43f5e; box-shadow: 0 0 10px rgba(244, 63, 94, 0.6); }
-  50% { border-color: #cbd5e1; box-shadow: 0 0 2px rgba(244, 63, 94, 0.1); }
+  0%, 100% { border-color: #f43f5e; box-shadow: 0 0 8px rgba(244, 63, 94, 0.4); }
+  50% { border-color: #fb7185; box-shadow: 0 0 14px rgba(244, 63, 94, 0.7); }
 }
 .pending-tasks-glow {
-  animation: pending-border-blink 1.8s infinite ease-in-out;
   border-width: 2px !important;
+  border-color: #f43f5e !important;
+  box-shadow: 0 0 6px rgba(244, 63, 94, 0.25) !important;
+}
+html.dark .pending-tasks-glow {
+  animation: pending-border-blink 2.2s infinite ease-in-out;
 }
 
 @keyframes container-blink-red {
-  0%, 100% { box-shadow: 0 0 12px rgba(244, 63, 94, 0.6), inset 0 0 6px rgba(244, 63, 94, 0.3); border-color: #f43f5e; }
-  50% { box-shadow: 0 0 20px rgba(244, 63, 94, 0.95), inset 0 0 8px rgba(244, 63, 94, 0.5); border-color: #fb7185; }
+  0%, 100% { box-shadow: 0 0 10px rgba(244, 63, 94, 0.5); border-color: #f43f5e; }
+  50% { box-shadow: 0 0 18px rgba(244, 63, 94, 0.85); border-color: #fb7185; }
 }
 .container-pending-glow {
-  animation: container-blink-red 1.6s infinite ease-in-out !important;
   border-width: 2px !important;
   border-color: #f43f5e !important;
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.25) !important;
+}
+html.dark .container-pending-glow {
+  animation: container-blink-red 2.2s infinite ease-in-out !important;
 }
 .container-pending-glow.pending-sunday { animation-name: container-blink-red; }
 .container-pending-glow.pending-saturday { animation-name: container-blink-red; }
@@ -117,10 +142,14 @@ html.dark .glass-panel {
 
 @keyframes badge-blink-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.94); }
+  50% { opacity: 0.85; transform: scale(0.98); }
 }
 .animate-badge-blink {
-  animation: badge-blink-pulse 1.5s infinite ease-in-out;
+  /* Di mode terang tetap tenang dan solid tanpa kedipan tajam */
+  opacity: 1;
+}
+html.dark .animate-badge-blink {
+  animation: badge-blink-pulse 2s infinite ease-in-out;
 }
 
 @keyframes pop-check {
@@ -301,12 +330,13 @@ html.dark .glass-panel {
 }
 
 .task-mepet-deadline-pulse {
-  animation: task-urgent-red-pulse 1.8s infinite ease-in-out !important;
   border-width: 2px !important;
+  border-color: #f43f5e !important;
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.25) !important;
 }
 
 html.dark .task-mepet-deadline-pulse {
-  animation: task-urgent-red-pulse-dark 1.8s infinite ease-in-out !important;
+  animation: task-urgent-red-pulse-dark 2.4s infinite ease-in-out !important;
   border-width: 2px !important;
 }
 

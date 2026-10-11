@@ -325,7 +325,7 @@ export const DailyTaskModal: React.FC<{
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-sky-500 focus:outline-none"
+              className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               placeholder="Tuliskan agenda pribadi hari ini..."
             />
           </div>
@@ -335,7 +335,7 @@ export const DailyTaskModal: React.FC<{
               type="date"
               value={dateStr}
               onChange={e => setDateStr(e.target.value)}
-              className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-sky-500 focus:outline-none"
+              className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             />
           </div>
         </div>
@@ -349,7 +349,7 @@ export const DailyTaskModal: React.FC<{
                 onSave(title.trim(), dateStr, priority, taskToEdit?.id);
               }
             }}
-            className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-md shadow-sky-500/20 active:scale-95 cursor-pointer"
+            className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-500/20 active:scale-95 cursor-pointer"
           >
             {taskToEdit ? 'Perbarui Agenda' : 'Simpan Agenda'}
           </button>
@@ -832,7 +832,16 @@ export const AffirmationImageModal: React.FC<{
             Unggah gambar afirmasi pribadi Anda. Teks afirmasi akan tetap ada, dan gambar dapat dilihat dalam popup layar penuh.
           </p>
           <div>
-            <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5">Pilih Berkas Gambar:</label>
+            <div className="flex items-center justify-between gap-2">
+              <label className="block font-bold text-slate-700 dark:text-slate-300">Pilih Berkas Gambar:</label>
+              <button
+                type="button"
+                onClick={() => setPreview('/afirmasi_margono.jpg')}
+                className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 underline cursor-pointer"
+              >
+                Gunakan Poster Utama Bawaan
+              </button>
+            </div>
             <input
               type="file"
               accept="image/*"

@@ -141,17 +141,17 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
   };
 
   return (
-    <section className="bg-gradient-to-br from-rose-100/90 via-red-50/80 to-rose-50/70 dark:from-rose-950/60 dark:via-slate-900 dark:to-red-950/40 rounded-3xl shadow-sm border-2 border-rose-300 dark:border-rose-700/80 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-rose-400 dark:hover:border-rose-600">
+    <section className="bg-gradient-to-br from-indigo-100/90 via-blue-50/80 to-slate-50/70 dark:from-indigo-950/60 dark:via-slate-900 dark:to-blue-950/40 rounded-3xl shadow-sm border-2 border-indigo-300 dark:border-indigo-700/80 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-indigo-400 dark:hover:border-indigo-600">
       {/* Header Utama Section (Ringkas & Bersih) */}
       <div className="px-5 sm:px-7 pt-5 sm:pt-6 pb-4">
-        <div className="flex items-center justify-between gap-3 pb-3 border-b-2 border-rose-200/80 dark:border-rose-900/60">
+        <div className="flex items-center justify-between gap-3 pb-3 border-b-2 border-indigo-200/80 dark:border-indigo-900/60">
           <div className="flex items-center gap-3 min-w-0">
-            <span className="w-1.5 h-10 rounded-full bg-rose-500 shrink-0" />
-            <div className="w-10 h-10 rounded-2xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-xs text-xl">
+            <span className="w-1.5 h-10 rounded-full bg-indigo-500 shrink-0" />
+            <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs text-xl">
               📋
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-800 dark:text-rose-300">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-800 dark:text-indigo-300">
                 Daftar Agenda & Tugas
               </p>
               <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-tight truncate">
@@ -160,19 +160,19 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-rose-100/90 dark:bg-rose-950/90 text-rose-800 dark:text-rose-300 border border-rose-300/80 dark:border-rose-700 shrink-0">
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-100/90 dark:bg-indigo-950/90 text-indigo-800 dark:text-indigo-300 border border-indigo-300/80 dark:border-indigo-700 shrink-0">
               {myDailyList.length + scheduledTasks.length} Agenda
             </span>
             {/* Tombol Hide / Show dengan status dan animasi transisi halus */}
             <button
               type="button"
               onClick={() => setIsCollapsed(prev => !prev)}
-              className="px-3.5 py-1.5 rounded-xl bg-white/90 hover:bg-white dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 border border-rose-200 dark:border-slate-700 cursor-pointer shadow-xs active:scale-95"
+              className="px-3.5 py-1.5 rounded-xl bg-white/90 hover:bg-white dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 border border-indigo-200 dark:border-slate-700 cursor-pointer shadow-xs active:scale-95"
               title={isCollapsed ? 'Tampilkan Pekerjaan Saya' : 'Sembunyikan Pekerjaan Saya'}
             >
               {isCollapsed ? (
                 <>
-                  <Eye className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                  <Eye className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                   <span>Show</span>
                 </>
               ) : (
@@ -205,7 +205,7 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                     onClick={() => setActiveTab('daily')}
                     className={`py-2.5 px-3 sm:px-4 rounded-xl font-extrabold text-xs sm:text-sm transition-all flex items-center justify-between gap-2 cursor-pointer ${
                       activeTab === 'daily'
-                        ? 'bg-white dark:bg-slate-900 text-rose-700 dark:text-rose-300 shadow-md shadow-rose-500/10 border border-rose-300 dark:border-rose-700'
+                        ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-md border border-slate-300 dark:border-slate-700'
                         : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50'
                     }`}
                   >
@@ -215,11 +215,11 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                     </div>
                     <div className="shrink-0 flex items-center gap-1.5">
                       {pendingCount > 0 ? (
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-200/90 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700">
                           {pendingCount} Belum
                         </span>
                       ) : myDailyList.length > 0 ? (
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                           ✓ Tuntas ({myDailyList.length})
                         </span>
                       ) : (
@@ -269,29 +269,29 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                       exit={{ opacity: 0, y: -12 }}
                       transition={{ duration: 0.25, ease: 'easeOut' }}
                     >
-                      {/* TAB 1: Catatan Harian (Warna bersih & konsisten merah) */}
-                      <div className="bg-white/80 dark:bg-slate-900/80 border border-rose-200 dark:border-rose-800/80 rounded-3xl p-5 sm:p-6 flex flex-col justify-between relative transition-all shadow-xs">
+                      {/* TAB 1: Catatan Harian (Warna Netral Nyaman Sesuai Permintaan) */}
+                      <div className="bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 flex flex-col justify-between relative transition-all shadow-xs">
                         <div>
                           {/* Header Konten: Tanggal & Aksi Tambah */}
-                          <div className="flex items-center justify-between gap-3 mb-3.5 pb-3 border-b border-rose-200/80 dark:border-rose-900/60">
+                          <div className="flex items-center justify-between gap-3 mb-3.5 pb-3 border-b border-slate-200 dark:border-slate-800">
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <span className={`w-1.5 h-6 rounded-full ${pendingCount > 0 ? 'bg-rose-500' : 'bg-emerald-500'} shrink-0`} />
+                              <span className="w-1.5 h-6 rounded-full bg-slate-500 dark:bg-slate-400 shrink-0" />
                               <div className="flex items-center gap-2 flex-wrap min-w-0">
                                 <span className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-slate-100">
                                   📅 {selectedDate.getDate()} {shortMonthNames[selectedDate.getMonth()]} {selectedYear}
                                 </span>
                                 {isToday && (
-                                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-200 border border-rose-200 dark:border-rose-800">
+                                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
                                     Hari Ini
                                   </span>
                                 )}
-                                {/* SATU-SATUNYA NOTIFIKASI BERKEDIP PADA CATATAN HARIAN (Permintaan User: buat 1 saja) */}
+                                {/* Notifikasi Catatan Harian Bernuansa Netral Nyaman */}
                                 {pendingCount > 0 ? (
-                                  <span className="text-[10px] sm:text-[11px] font-bold text-rose-700 dark:text-rose-200 bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-700 px-2.5 py-0.5 rounded-full shadow-2xs animate-badge-blink flex items-center gap-1">
+                                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-2.5 py-0.5 rounded-full shadow-2xs flex items-center gap-1">
                                     <span>⚠️ {pendingCount} Belum Selesai</span>
                                   </span>
                                 ) : myDailyList.length > 0 ? (
-                                  <span className="text-[10px] sm:text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700 px-2.5 py-0.5 rounded-full shadow-2xs flex items-center gap-1">
+                                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-0.5 rounded-full shadow-2xs flex items-center gap-1">
                                     <span>✓ Semua Tuntas</span>
                                   </span>
                                 ) : null}
@@ -300,7 +300,7 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                             <div className="flex items-center gap-2 shrink-0">
                               <button
                                 onClick={onOpenAddDailyTask}
-                                className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
                                 title="Tambah Catatan Harian Pribadi"
                               >
                                 <Plus className="w-3.5 h-3.5" />
@@ -309,23 +309,19 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                             </div>
                           </div>
 
-                          {/* Animasi Progress Bar Halus & Memuaskan Saat Tugas Harian Diselesaikan */}
+                          {/* Animasi Progress Bar Halus & Netral */}
                           {myDailyList.length > 0 && (
-                            <div className={`mb-4 p-3 rounded-2xl border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${
-                              dailyPct === 100
-                                ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 shadow-sm animate-celebrate-glow'
-                                : 'bg-rose-50/50 dark:bg-slate-800/60 border-rose-200/70 dark:border-rose-900/40'
-                            }`}>
+                            <div className="mb-4 p-3 rounded-2xl border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md bg-slate-50/90 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800">
                               <div className="flex items-center justify-between text-xs mb-1.5">
                                 <div className="flex items-center gap-1.5 font-bold min-w-0">
                                   {dailyPct === 100 ? (
-                                    <span className="text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5 truncate">
-                                      <Sparkles className="w-4 h-4 text-emerald-500 animate-spin shrink-0" style={{ animationDuration: '4s' }} />
+                                    <span className="text-slate-700 dark:text-slate-200 flex items-center gap-1.5 truncate">
+                                      <Sparkles className="w-4 h-4 text-amber-500 animate-spin shrink-0" style={{ animationDuration: '4s' }} />
                                       <span className="truncate">Target Harian Tuntas 100%! Luar Biasa! 🎉</span>
                                     </span>
                                   ) : (
-                                    <span className="text-slate-700 dark:text-slate-200 truncate">
-                                      Progres Tugas Harian: <strong className="text-rose-600 dark:text-rose-400">{completedDailyCount}</strong> dari {myDailyList.length} selesai
+                                    <span className="text-slate-700 dark:text-slate-300 truncate">
+                                      Progres Tugas Harian: <strong className="text-slate-900 dark:text-white font-black">{completedDailyCount}</strong> dari {myDailyList.length} selesai
                                     </span>
                                   )}
                                 </div>
@@ -336,28 +332,24 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                                   transition={{ duration: 0.25 }}
                                   className={`font-black text-xs font-mono px-2 py-0.5 rounded-full shadow-2xs border shrink-0 ${
                                     dailyPct === 100
-                                      ? 'bg-emerald-500 text-white border-emerald-400 shadow-emerald-500/20'
-                                      : 'bg-white dark:bg-slate-900 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-slate-700'
+                                      ? 'bg-slate-800 dark:bg-slate-700 text-white border-slate-700 dark:border-slate-600'
+                                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
                                   }`}
                                 >
                                   {dailyPct}%
                                 </motion.span>
                               </div>
 
-                              {/* Bar Track & Animated Fill */}
+                              {/* Bar Track & Animated Fill Netral */}
                               <div className="w-full h-3 bg-white dark:bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-slate-700 shadow-inner relative">
                                 <motion.div
-                                  className={`h-full rounded-full relative overflow-hidden shadow-xs ${
-                                    dailyPct === 100
-                                      ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-green-500 shadow-emerald-400/40'
-                                      : 'bg-gradient-to-r from-rose-500 via-red-500 to-pink-500 shadow-rose-400/30'
-                                  }`}
+                                  className="h-full rounded-full relative overflow-hidden shadow-xs bg-gradient-to-r from-slate-500 via-slate-600 to-slate-700 dark:from-slate-600 dark:via-slate-500 dark:to-slate-400"
                                   initial={{ width: 0 }}
                                   animate={{ width: `${dailyPct}%` }}
                                   transition={{ type: 'spring', stiffness: 80, damping: 14 }}
                                 >
                                   {/* Shimmer sweep animation over bar */}
-                                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-full h-full animate-progress-shimmer pointer-events-none" />
+                                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full h-full animate-progress-shimmer pointer-events-none" />
                                 </motion.div>
                               </div>
                             </div>
@@ -384,7 +376,7 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
                                       type="checkbox"
                                       checked={task.completed}
                                       onChange={() => onToggleDailyTask(task.id)}
-                                      className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 cursor-pointer accent-rose-600"
+                                      className="w-4 h-4 rounded text-slate-700 focus:ring-slate-500 cursor-pointer accent-slate-700 dark:accent-slate-400"
                                     />
                                     <div className="min-w-0 flex-1">
                                       <p

@@ -49,6 +49,7 @@ export default function App() {
           return {
             ...initial,
             ...parsed,
+            affirmationImage: parsed.affirmationImage || initial.affirmationImage,
             scheduledTasks: Array.isArray(parsed.scheduledTasks) ? parsed.scheduledTasks : initial.scheduledTasks,
             dailyTasks: Array.isArray(parsed.dailyTasks) ? parsed.dailyTasks : initial.dailyTasks,
             habits: Array.isArray(parsed.habits) ? parsed.habits : initial.habits,
@@ -217,6 +218,7 @@ export default function App() {
               ...initial,
               ...prev,
               ...cloudData,
+              affirmationImage: cloudData.affirmationImage || prev.affirmationImage || initial.affirmationImage,
               scheduledTasks: Array.isArray(cloudData.scheduledTasks) ? cloudData.scheduledTasks : (Array.isArray(prev.scheduledTasks) ? prev.scheduledTasks : initial.scheduledTasks),
               dailyTasks: Array.isArray(cloudData.dailyTasks) ? cloudData.dailyTasks : (Array.isArray(prev.dailyTasks) ? prev.dailyTasks : initial.dailyTasks),
               habits: Array.isArray(cloudData.habits) ? cloudData.habits : (Array.isArray(prev.habits) ? prev.habits : initial.habits),
@@ -934,6 +936,7 @@ export default function App() {
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         >
           <AnalyticsSection
+            dailyTasks={appState.dailyTasks}
             habits={appState.habits}
             timeCategories={appState.timeCategories}
             timeTracking={appState.timeTracking}
@@ -981,7 +984,7 @@ export default function App() {
         <div className="p-2 sm:p-2.5 rounded-2xl bg-white/85 dark:bg-slate-900/85 border border-slate-200/90 dark:border-slate-800 shadow-sm backdrop-blur-md">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 px-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
+              <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 shrink-0" />
               <div className="min-w-0">
                 <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
                   Panel Produktivitas
@@ -994,7 +997,7 @@ export default function App() {
 
             {/* Segmented Controls: 5 Tab Termasuk Jurnal Pribadi */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1.5 p-1 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60">
-              {/* Tab 1: Tugas (Pekerjaan Saya) */}
+              {/* Tab 1: Tugas (Pekerjaan Saya - Berwarna Indigo Sesuai Blok Terbaru) */}
               <button
                 type="button"
                 onClick={() => {
@@ -1003,7 +1006,7 @@ export default function App() {
                 }}
                 className={`py-2 px-3 rounded-lg text-xs font-extrabold transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer hover:-translate-y-0.5 active:scale-95 ${
                   activeFeatureSection === 'tasks'
-                    ? 'bg-rose-500 text-white shadow-md shadow-rose-500/25 ring-1 ring-rose-400'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 ring-1 ring-indigo-400'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/70 dark:hover:bg-slate-700/70 hover:shadow-sm'
                 }`}
               >
@@ -1013,7 +1016,7 @@ export default function App() {
                   className={`text-[10px] px-1.5 py-0.2 rounded-full font-black shrink-0 ${
                     activeFeatureSection === 'tasks'
                       ? 'bg-white/20 text-white'
-                      : 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300'
+                      : 'bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300'
                   }`}
                 >
                   {pendingDailyCount}

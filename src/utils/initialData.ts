@@ -54,7 +54,7 @@ export function getInitialAppState(): AppStateData {
   return {
     soundEnabled: true,
     currentAffirmationIndex: 0,
-    affirmationImage: null,
+    affirmationImage: '/afirmasi_margono.jpg',
     myPersonalNotes: "Fokus menjaga kesehatan, kedisiplinan jadwal harian, dan menghasilkan karya terbaik setiap hari.",
     nationalHolidays: {},
     affirmations: [

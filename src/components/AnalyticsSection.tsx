@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { PieChart as PieIcon, BarChart2, TrendingUp, Clock, CheckCircle2, Award, Sparkles, Filter } from 'lucide-react';
-import { Habit, TimeCategory } from '../types';
+import { PieChart as PieIcon, TrendingUp, Clock, CheckCircle2 } from 'lucide-react';
+import { Habit, TimeCategory, DailyTask } from '../types';
 import { formatDateKey, normalizeHabitColor } from '../utils/initialData';
 
 interface AnalyticsSectionProps {
+  dailyTasks?: DailyTask[];
   habits: Habit[];
   timeCategories: TimeCategory[];
   timeTracking: Record<string, Record<number, string>>;
@@ -210,6 +211,7 @@ const SvgChartRenderer: React.FC<SvgChartRendererProps> = ({
 };
 
 export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
+  dailyTasks = [],
   habits,
   timeCategories,
   timeTracking,
@@ -532,6 +534,7 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
           </div>
         </div>
       </div>
+
     </section>
   );
 };

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ListTodo, CheckCircle2, Clock, Layers, BookOpen } from 'lucide-react';
 import { AppStateData, ScheduledTask, DailyTask, DayReflection, Habit, TimeCategory } from './types';
 import { getInitialAppState, formatDateKey, getOffsetDateString, advanceDeadlineDate } from './utils/initialData';
+import { exportAppStateToExcel, importAppStateFromExcel } from './utils/excelExport';
 import { playClickSound, playCelebrationSound, playFanfareSound, initAudioContext } from './utils/audio';
 import { triggerConfetti, triggerSuperConfetti } from './utils/confetti';
 import { fetchNationalHolidays } from './utils/holidays';
@@ -804,8 +805,21 @@ export default function App() {
     showToast('Afirmasi baru berhasil disimpan!', 'success');
   };
 
-  // Export / Import
-  const handleExportData = () => {
+  // Export / Import (Excel & JSON)
+  const handleExportExcel = () => {
+    playCelebrationSound(appState.soundEnabled);
+    try {
+      const fileName = `MyJourney_MargonoWibowo_${formatDateKey(today)}.xlsx`;
+      exportAppStateToExcel(appState, fileName);
+      showToast('📊 Berkas cadangan Excel (.xlsx) berhasil diunduh!', 'success');
+      triggerConfetti(canvasRef.current);
+    } catch (err) {
+      console.error(err);
+      showToast('Gagal membuat berkas Excel.', 'warning');
+    }
+  };
+
+  const handleExportJson = () => {
     playClickSound(appState.soundEnabled);
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(appState, null, 2));
     const downloadAnchor = document.createElement('a');
@@ -814,10 +828,29 @@ export default function App() {
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
-    showToast('File cadangan data berhasil diunduh!', 'success');
+    showToast('File cadangan JSON berhasil diunduh!', 'success');
   };
 
-  const handleImportData = (file: File) => {
+  const handleImportData = async (file: File) => {
+    if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+      try {
+        const imported = await importAppStateFromExcel(file);
+        if (imported && (imported.scheduledTasks || imported.dailyTasks)) {
+          saveState({ ...getInitialAppState(), ...imported });
+          setIsBackupOpen(false);
+          showToast('Data berhasil dipulihkan dari berkas Excel!', 'success');
+          triggerConfetti(canvasRef.current);
+        } else {
+          showToast('Berkas Excel tidak memiliki sheet cadangan sistem yang valid.', 'warning');
+        }
+      } catch (err) {
+        console.error(err);
+        showToast('Gagal memproses berkas Excel.', 'warning');
+      }
+      return;
+    }
+
+    // JSON file fallback
     const reader = new FileReader();
     reader.onload = e => {
       try {
@@ -825,7 +858,7 @@ export default function App() {
         if (imported.scheduledTasks || imported.dailyTasks) {
           saveState({ ...getInitialAppState(), ...imported });
           setIsBackupOpen(false);
-          showToast('Data berhasil dipulihkan secara menyeluruh!', 'success');
+          showToast('Data berhasil dipulihkan secara menyeluruh dari JSON!', 'success');
           triggerConfetti(canvasRef.current);
         } else {
           showToast('Format data JSON tidak sesuai.', 'warning');
@@ -1410,7 +1443,8 @@ export default function App() {
       <BackupModal
         isOpen={isBackupOpen}
         onClose={() => setIsBackupOpen(false)}
-        onExport={handleExportData}
+        onExportExcel={handleExportExcel}
+        onExportJson={handleExportJson}
         onImport={handleImportData}
       />
 

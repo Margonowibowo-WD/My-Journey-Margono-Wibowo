@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Trophy, Copy, Check, FileText, Cloud, CloudUpload, CloudDownload, RefreshCw, Code, AlertTriangle } from 'lucide-react';
+import { X, Sparkles, Trophy, Copy, Check, FileText, Cloud, CloudUpload, CloudDownload, RefreshCw, Code, AlertTriangle, FileSpreadsheet, FileCode } from 'lucide-react';
 import { ScheduledTask, DailyTask, Habit, TimeCategory } from '../types';
 
 // 1. Personal Notes Modal (Besar, Lega, dan Nyaman Dibaca)
@@ -767,12 +767,48 @@ export const AffirmationImageModal: React.FC<{
     setPreview(currentImage);
   }, [currentImage, isOpen]);
 
+  const [isCompressing, setIsCompressing] = useState(false);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files && e.target.files[0];
     if (file) {
+      setIsCompressing(true);
       const reader = new FileReader();
       reader.onload = ev => {
-        setPreview(ev.target?.result as string);
+        const rawUrl = ev.target?.result as string;
+        const img = new Image();
+        img.onload = () => {
+          // Kompresi optimal: max 1000px agar ringan (<80KB) dan bisa disinkronkan ke Google Sheet cloud antar device
+          const maxDim = 1000;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressed = canvas.toDataURL('image/jpeg', 0.8);
+            setPreview(compressed);
+          } else {
+            setPreview(rawUrl);
+          }
+          setIsCompressing(false);
+        };
+        img.onerror = () => {
+          setPreview(rawUrl);
+          setIsCompressing(false);
+        };
+        img.src = rawUrl;
       };
       reader.readAsDataURL(file);
     }
@@ -804,10 +840,18 @@ export const AffirmationImageModal: React.FC<{
               className="block w-full text-xs text-slate-500 dark:text-slate-400 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 dark:file:bg-emerald-950/80 file:text-emerald-700 dark:file:text-emerald-300 hover:file:bg-emerald-100 cursor-pointer"
             />
           </div>
+          {isCompressing && (
+            <p className="text-[11px] text-sky-600 dark:text-sky-400 flex items-center gap-1.5 animate-pulse font-medium">
+              <span>⏳</span> Mengoptimalkan resolusi gambar agar ringan disinkronkan antar perangkat...
+            </p>
+          )}
           {preview && (
             <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 text-center">
               <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-2">Pratinjau Gambar:</p>
               <img src={preview} alt="Pratinjau" className="max-h-48 mx-auto object-contain rounded-xl border border-slate-200 dark:border-slate-600 shadow-sm" />
+              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-2 font-medium">
+                ✓ Format optimal & siap disinkronkan otomatis ke Google Sheet
+              </p>
             </div>
           )}
         </div>
@@ -822,12 +866,13 @@ export const AffirmationImageModal: React.FC<{
               Batal
             </button>
             <button
+              disabled={isCompressing}
               onClick={() => {
-                if (preview) onSaveImage(preview);
+                if (preview && !isCompressing) onSaveImage(preview);
               }}
-              className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-500/20 active:scale-95 cursor-pointer"
+              className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-emerald-500/20 active:scale-95 cursor-pointer"
             >
-              Simpan Gambar
+              {isCompressing ? 'Memproses...' : 'Simpan Gambar'}
             </button>
           </div>
         </div>
@@ -984,16 +1029,18 @@ export const CustomAffirmationModal: React.FC<{
   );
 };
 
-// 11. Backup / Restore Modal (Cadangan Berkas Lokal)
+// 11. Backup / Restore Modal (Cadangan Berkas Excel & JSON)
 export const BackupModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  onExport: () => void;
+  onExportExcel: () => void;
+  onExportJson?: () => void;
   onImport: (file: File) => void;
 }> = ({
   isOpen,
   onClose,
-  onExport,
+  onExportExcel,
+  onExportJson,
   onImport
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -1002,71 +1049,103 @@ export const BackupModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/75 backdrop-blur-md animate-pop-check">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
         {/* Header Modal */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold text-lg">
-              💾
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xl">
+              📊
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
-                Cadangan Data (.json)
+                Cadangkan & Unduh Data
               </h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Arsip berkas lokal untuk perangkat Anda
+                Arsip berkas Excel (.xlsx) & JSON untuk perangkat Anda
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg cursor-pointer">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg cursor-pointer transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="space-y-4 text-xs font-body text-slate-600 dark:text-slate-300">
-          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-200 dark:border-emerald-800/50 space-y-1">
+          {/* Status Google Sheet */}
+          <div className="p-3 bg-emerald-50/90 dark:bg-emerald-950/40 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 space-y-1">
             <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-bold">
               <span>🟢</span>
               <span>Sinkronisasi Otomatis Google Sheet Aktif</span>
             </div>
             <p className="text-[11px] text-emerald-700 dark:text-emerald-400 leading-relaxed">
-              Seluruh catatan, tugas, dan kebiasaan (habit) Anda sudah otomatis tersimpan langsung ke Google Sheet My Journey Margono wibowo.
+              Seluruh catatan, tugas harian, tugas terjadwal, dan kebiasaan (habit) sudah tersimpan otomatis ke cloud Google Sheet Pak Margono.
             </p>
           </div>
 
-          {/* Cadangan Berkas Offline (.json) */}
-          <div className="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2.5">
-            <p className="font-bold text-slate-800 dark:text-slate-100">
-              Cadangan Berkas Manual (.json):
-            </p>
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={onExport}
-                className="w-full py-2.5 rounded-xl bg-slate-800 dark:bg-sky-600 hover:bg-slate-900 dark:hover:bg-sky-700 text-white font-bold text-xs transition-all cursor-pointer text-center shadow-xs"
-              >
-                Unduh Cadangan (.json)
-              </button>
-              <div className="pt-2 border-t border-slate-200 dark:border-slate-700 space-y-2">
-                <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                  Pulihkan dari Berkas Cadangan:
-                </label>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={e => setSelectedFile(e.target.files?.[0] || null)}
-                  className="block w-full text-[10px] text-slate-500 dark:text-slate-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-sky-100 dark:file:bg-sky-950 file:text-sky-700 dark:file:text-sky-300 cursor-pointer"
-                />
-                {selectedFile && (
-                  <button
-                    type="button"
-                    onClick={() => onImport(selectedFile)}
-                    className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-all cursor-pointer shadow-xs"
-                  >
-                    Terapkan File Ini
-                  </button>
-                )}
+          {/* Unduh Berkas Excel (.xlsx) */}
+          <div className="p-4 bg-gradient-to-br from-emerald-50 to-teal-50/60 dark:from-emerald-950/40 dark:to-slate-800 rounded-2xl border-2 border-emerald-300 dark:border-emerald-700 space-y-2.5 shadow-xs">
+            <div className="flex items-center gap-2">
+              <FileSpreadsheet className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              <div>
+                <p className="font-bold text-slate-800 dark:text-slate-100 text-xs">
+                  Unduh / Cadangkan Berupa Excel (.xlsx)
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Rapi dan terstruktur dalam lembar kerja: Tugas Terjadwal, Harian, Habit, Time Tracker, dan Jurnal Refleksi.
+                </p>
               </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onExportExcel}
+              className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md shadow-emerald-600/25"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>Unduh Berkas Excel (.xlsx) Sekarang</span>
+            </button>
+          </div>
+
+          {/* Cadangan JSON & Pemulihan Berkas */}
+          <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <FileCode className="w-4 h-4 text-sky-500" />
+                <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                  Opsi Cadangan JSON & Pulihkan Data:
+                </span>
+              </div>
+              {onExportJson && (
+                <button
+                  type="button"
+                  onClick={onExportJson}
+                  className="text-[11px] font-bold text-sky-600 hover:text-sky-700 dark:text-sky-400 underline cursor-pointer"
+                >
+                  Unduh JSON
+                </button>
+              )}
+            </div>
+
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-700 space-y-2">
+              <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                Pulihkan Data dari Berkas (.xlsx atau .json):
+              </label>
+              <input
+                type="file"
+                accept=".xlsx, .xls, .json"
+                onChange={e => setSelectedFile(e.target.files?.[0] || null)}
+                className="block w-full text-[10px] text-slate-500 dark:text-slate-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-sky-100 dark:file:bg-sky-950 file:text-sky-700 dark:file:text-sky-300 cursor-pointer"
+              />
+              {selectedFile && (
+                <button
+                  type="button"
+                  onClick={() => onImport(selectedFile)}
+                  className="w-full py-2 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-[0.98] text-white font-bold text-xs transition-all cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Terapkan & Pulihkan Data ({selectedFile.name})</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

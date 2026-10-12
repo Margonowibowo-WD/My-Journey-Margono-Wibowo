@@ -580,8 +580,10 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                 className={cellClasses}
                 onClick={() => onSelectDate(currentViewYear, currentViewMonth, day)}
                 onMouseEnter={() => {
-                  // Tugas yang sudah selesai / centang hijau TIDAK PERLU menampilkan popup lagi
-                  if (hasPendingTasks && addingTaskDate !== cellDateStr) handleCellMouseEnter(cellDateStr);
+                  // Hanya tampilkan popup jika ada tugas yang BELUM selesai atau hari libur nasional
+                  if ((hasPendingTasks || isNationalHoliday) && addingTaskDate !== cellDateStr) {
+                    handleCellMouseEnter(cellDateStr);
+                  }
                 }}
                 onMouseLeave={handleCellMouseLeave}
               >
@@ -682,27 +684,27 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                             </span>
                           )}
 
-                          {/* 2. IKON CATATAN JANGAN SAMPAI LUPA: Warna Menyesuaikan Deadline */}
-                          {myScheduledList.length > 0 && (
+                          {/* 2. IKON CATATAN JANGAN SAMPAI LUPA: Hanya Muncul Jika Ada yang Belum Selesai (Langsung Hilang Saat Selesai) */}
+                          {pendingScheduled.length > 0 && (
                             <span
                               className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[9px] shadow-xs transition-all ${schedIconClass}`}
-                              title={`${myScheduledList.length} Catatan Jangan Sampai Lupa (${pendingScheduled.length} belum - ${schedLabel})`}
+                              title={`${pendingScheduled.length} Catatan Jangan Sampai Lupa (${schedLabel})`}
                             >
                               <CalendarClock className="w-3 h-3 stroke-[2.2]" />
-                              <span>{myScheduledList.length}</span>
+                              <span>{pendingScheduled.length}</span>
                             </span>
                           )}
                         </>
                       );
                     })()}
 
-                    {/* 3. IKON CENTANG HIJAU BESAR JIKA SEMUA SELESAI */}
-                    {myDailyList.length > 0 && pendingMyDaily.length === 0 && pendingScheduled.length === 0 && (
+                    {/* 3. IKON CENTANG HIJAU JIKA SEMUA TUGAS SELESAI */}
+                    {(myDailyList.length > 0 || myScheduledList.length > 0) && pendingMyDaily.length === 0 && pendingScheduled.length === 0 && (
                       <span
                         className={`inline-flex items-center justify-center p-0.5 rounded-full drop-shadow-xs transition-transform hover:scale-110 ${
                           isSelected ? 'text-white' : 'text-emerald-500 dark:text-emerald-400'
                         }`}
-                        title="Semua agenda pada tanggal ini telah selesai tuntas!"
+                        title="Semua tugas pada tanggal ini telah selesai tuntas!"
                       >
                         <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" />
                       </span>
@@ -710,8 +712,8 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                   </div>
                 </div>
 
-                {/* 1. POPUP HOVER: HANYA UNTUK MENAMPILKAN TUGAS BELUM SELESAI */}
-                {isHovered && hasPendingTasks && addingTaskDate !== cellDateStr && (
+                {/* 1. POPUP HOVER: HANYA MENAMPILKAN TUGAS YANG BELUM SELESAI (LANGSUNG HILANG KETIKA DIKLIK / SELESAI) */}
+                {isHovered && (hasPendingTasks || isNationalHoliday) && addingTaskDate !== cellDateStr && (
                   <div
                     onMouseEnter={handlePopupMouseEnter}
                     onMouseLeave={handlePopupMouseLeave}
@@ -734,10 +736,17 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                           <span>{dayNamesFull[dayOfWeek]}, {day} {shortMonthNames[currentViewMonth]} {currentViewYear}</span>
                         </p>
                       </div>
-                      <span className="px-2.5 py-1 rounded-full bg-white/20 text-white border border-white/80 text-[10px] font-black shrink-0 flex items-center gap-1 shadow-[0_0_12px_rgba(255,255,255,0.7)] drop-shadow-[0_0_4px_rgba(255,255,255,0.9)] animate-pulse">
-                        <span>⚠️</span>
-                        <span>{totalPending} Belum Selesai</span>
-                      </span>
+                      {totalPending > 0 ? (
+                        <span className="px-2.5 py-1 rounded-full bg-white/20 text-white border border-white/80 text-[10px] font-black shrink-0 flex items-center gap-1 shadow-[0_0_12px_rgba(255,255,255,0.7)] drop-shadow-[0_0_4px_rgba(255,255,255,0.9)] animate-pulse">
+                          <span>⚠️</span>
+                          <span>{totalPending} Belum Selesai</span>
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-1 rounded-full bg-emerald-500/25 text-emerald-300 border border-emerald-400/80 text-[10px] font-black shrink-0 flex items-center gap-1 shadow-[0_0_12px_rgba(16,185,129,0.5)]">
+                          <span>✓</span>
+                          <span>Semua Selesai</span>
+                        </span>
+                      )}
                     </div>
 
                     {/* Notifikasi Libur Nasional jika ada */}
@@ -748,8 +757,18 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                       </div>
                     )}
 
+                    {/* Notifikasi ketika semua tugas sudah selesai tuntas */}
+                    {totalPending === 0 && (
+                      <div className="mt-3 p-3.5 rounded-2xl bg-emerald-950/70 border border-emerald-500/40 text-center flex items-center justify-center gap-2 text-emerald-300 text-xs font-bold shadow-inner">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>Semua tugas di tanggal ini sudah selesai tuntas! ✓</span>
+                      </div>
+                    )}
+
                     {/* ========================================================
-                        TUGAS HARIAN (Tema Hijau / Emerald - Sesuai Permintaan)
+                        TUGAS HARIAN (Tema Hijau / Emerald)
+                        Hanya menampilkan tugas yang BELUM selesai.
+                        Tugas yang diklik / selesai langsung hilang dari kalender agar fokus pada yang belum selesai.
                        ======================================================== */}
                     {pendingMyDaily.length > 0 && (
                       <div className="mt-3 p-3 rounded-2xl bg-gradient-to-br from-emerald-950/90 via-slate-900 to-teal-950/90 border-2 border-emerald-500/70 shadow-lg">
@@ -764,35 +783,51 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                               </p>
                             </div>
                           </div>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/25 text-emerald-200 border border-emerald-400/40 shrink-0">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 bg-emerald-500/25 text-emerald-200 border-emerald-400/40">
                             {pendingMyDaily.length} Belum
                           </span>
                         </div>
-                        <div className="space-y-1.5 max-h-40 overflow-y-auto pr-0.5">
+                        <div className="space-y-1.5 max-h-44 overflow-y-auto pr-0.5">
                           {pendingMyDaily.map((task) => (
                             <div
                               key={task.id}
-                              className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-emerald-500/30 hover:border-emerald-400/70 flex items-center justify-between gap-2 text-xs transition-colors group"
+                              className="p-2 rounded-xl border flex items-center justify-between gap-2 text-xs transition-all group bg-slate-900/90 hover:bg-slate-800/90 border-emerald-500/30 hover:border-emerald-400/70"
                             >
-                              <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
                                 <button
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     if (onToggleDailyTask) onToggleDailyTask(task.id);
                                   }}
-                                  className="w-5 h-5 rounded-md border-2 border-emerald-400/70 hover:border-emerald-300 hover:bg-emerald-500/25 text-emerald-300 flex items-center justify-center transition-all cursor-pointer active:scale-90 shrink-0 group/chk"
-                                  title="Centang selesai (langsung hilang dari daftar)"
+                                  className="w-5 h-5 rounded-md border-2 border-emerald-400/80 hover:border-emerald-300 hover:bg-emerald-500/30 text-emerald-300 flex items-center justify-center transition-all cursor-pointer active:scale-90 shrink-0 group/chk"
+                                  title="Centang selesai (langsung hilang dari kalender)"
                                 >
                                   <Check className="w-3.5 h-3.5 opacity-0 group-hover/chk:opacity-100 transition-opacity" />
                                 </button>
-                                <span className="font-semibold text-slate-100 leading-snug line-clamp-2">
+                                <span
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onToggleDailyTask) onToggleDailyTask(task.id);
+                                  }}
+                                  className="font-semibold leading-snug line-clamp-2 cursor-pointer select-none text-slate-100 hover:text-emerald-300 transition-colors"
+                                  title="Klik untuk menyelesaikan (langsung hilang dari kalender)"
+                                >
                                   {task.title}
                                 </span>
                               </div>
-                              <span className="text-[9px] text-emerald-300 font-bold opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                Tuntas ✓
-                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (onToggleDailyTask) onToggleDailyTask(task.id);
+                                }}
+                                className="text-[9px] font-bold shrink-0 px-2.5 py-1 rounded-lg border border-emerald-400/50 bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 cursor-pointer transition-all active:scale-95 flex items-center gap-1 shadow-2xs"
+                                title="Centang selesai (langsung hilang dari kalender)"
+                              >
+                                <Check className="w-3 h-3 text-emerald-300" />
+                                <span>Selesai</span>
+                              </button>
                             </div>
                           ))}
                         </div>
@@ -800,7 +835,9 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                     )}
 
                     {/* ========================================================
-                        TUGAS TERJADWAL & CATATAN (Netral Putih dengan Fitur & Status Lengkap Sesuai Catatan Jangan Sampai Lupa)
+                        TUGAS TERJADWAL & CATATAN
+                        Hanya menampilkan tugas terjadwal yang BELUM selesai.
+                        Tugas yang diklik / selesai langsung hilang dari kalender agar fokus pada yang belum selesai.
                        ======================================================== */}
                     {pendingScheduled.length > 0 && (
                       <div className="mt-2.5 p-3 rounded-2xl bg-white/5 border border-white/15 backdrop-blur-md shadow-lg">
@@ -815,7 +852,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                               </p>
                             </div>
                           </div>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-white border border-white/20 shrink-0">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 bg-white/10 text-white border-white/20">
                             {pendingScheduled.length} Belum
                           </span>
                         </div>
@@ -833,7 +870,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                                 } ${status.borderAccent} flex flex-col gap-1.5 text-xs transition-colors group text-white shadow-xs`}
                               >
                                 <div className="flex items-center justify-between gap-1.5">
-                                  <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
                                     <button
                                       type="button"
                                       onClick={(e) => {
@@ -841,18 +878,33 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                                         if (onToggleScheduledTask) onToggleScheduledTask(task.id);
                                       }}
                                       className="w-5 h-5 rounded-md border-2 border-white/60 hover:border-white hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer active:scale-90 shrink-0 group/chk"
-                                      title="Centang selesai"
+                                      title="Centang selesai (langsung hilang dari kalender)"
                                     >
                                       <Check className="w-3.5 h-3.5 opacity-0 group-hover/chk:opacity-100 transition-opacity" />
                                     </button>
-                                    <span className="font-extrabold text-white leading-snug line-clamp-2 flex items-center gap-1.5">
+                                    <span
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onToggleScheduledTask) onToggleScheduledTask(task.id);
+                                      }}
+                                      className="font-extrabold leading-snug line-clamp-2 flex items-center gap-1.5 cursor-pointer select-none text-white transition-colors hover:text-emerald-300"
+                                      title="Klik untuk menyelesaikan (langsung hilang dari kalender)"
+                                    >
                                       <span className="shrink-0">{status.indicatorIcon}</span>
                                       <span>{task.title}</span>
                                     </span>
                                   </div>
-                                  <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full shrink-0 flex items-center gap-1 ${status.badgeStyle}`}>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (onToggleScheduledTask) onToggleScheduledTask(task.id);
+                                    }}
+                                    className={`text-[10px] font-black px-2.5 py-0.5 rounded-full shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95 ${status.badgeStyle}`}
+                                    title="Centang selesai (langsung hilang dari kalender)"
+                                  >
                                     {status.badgeText}
-                                  </span>
+                                  </button>
                                 </div>
                                 {task.repeat && task.repeat !== 'none' && (
                                   <div className="text-[10px] text-white/90 font-medium flex items-center gap-1 pl-7">

@@ -336,8 +336,9 @@ html.dark .animate-badge-blink {
 }
 
 html.dark .task-mepet-deadline-pulse {
-  animation: task-urgent-red-pulse-dark 2.4s infinite ease-in-out !important;
   border-width: 2px !important;
+  border-color: #f43f5e !important;
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.35) !important;
 }
 
 /* Animasi Progress Bar Halus & Efek Shimmer Mewah */

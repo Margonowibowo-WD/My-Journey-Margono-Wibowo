@@ -264,7 +264,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
         isMepet: true,
         label: 'Expired',
         badgeText: daysLeft === 0 ? 'Hari Ini!' : `Terlewat ${Math.abs(daysLeft)} Hari`,
-        badgeStyle: 'bg-red-600 text-white border border-red-300 shadow-sm dark:animate-pulse font-extrabold',
+        badgeStyle: 'bg-red-600 text-white border border-red-300 shadow-sm font-extrabold',
         cardStyle: 'border-2 border-red-500 bg-red-950/80 hover:bg-red-900/70 shadow-md shadow-red-950/50',
         borderAccent: 'border-l-4 border-l-red-500',
         titleColor: 'text-red-100 font-bold',
@@ -278,7 +278,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
         isMepet: true,
         label: 'Mepet Deadline',
         badgeText: `${daysLeft} Hari Lagi (Mepet)`,
-        badgeStyle: 'bg-rose-600 text-white border border-rose-300 shadow-sm dark:animate-pulse font-extrabold',
+        badgeStyle: 'bg-rose-600 text-white border border-rose-300 shadow-sm font-extrabold',
         cardStyle: 'border-2 border-rose-500 bg-rose-950/70 hover:bg-rose-900/60 shadow-md shadow-rose-950/50',
         borderAccent: 'border-l-4 border-l-rose-500',
         titleColor: 'text-rose-100 font-bold',
@@ -536,10 +536,10 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
             const isHovered = hoveredCellDate === cellDateStr;
             const isAllCompleted = myDailyList.length > 0 && pendingMyDaily.length === 0 && pendingScheduled.length === 0;
 
-            // Animasi Kotak Tanggal Timbul saat Mouse di Atas Tanggal (Hover Lift 3D Effect)
-            let cellClasses = 'relative min-h-[64px] sm:min-h-[74px] p-1.5 sm:p-2 rounded-2xl transition-all duration-200 ease-out transform cursor-pointer flex flex-col justify-between hover:-translate-y-1.5 hover:scale-[1.03] hover:shadow-xl hover:z-30 active:scale-95 ';
+            // Animasi Kotak Tanggal Timbul saat Mouse di Atas Tanggal (Hover Lift 3D Effect stabil tanpa getaran skala)
+            let cellClasses = 'relative min-h-[64px] sm:min-h-[74px] p-1.5 sm:p-2 rounded-2xl transition-transform duration-200 ease-out cursor-pointer flex flex-col justify-between hover:-translate-y-1.5 hover:shadow-xl hover:z-30 ';
             if (isHovered) {
-              cellClasses += ' -translate-y-1.5 scale-[1.03] shadow-xl z-30 ring-2 ring-cyan-400/80 dark:ring-cyan-500/80 ';
+              cellClasses += ' -translate-y-1.5 shadow-xl z-30 ring-2 ring-cyan-400/80 dark:ring-cyan-500/80 ';
             } else {
               cellClasses += ' z-0 ';
             }
@@ -717,8 +717,9 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                   <div
                     onMouseEnter={handlePopupMouseEnter}
                     onMouseLeave={handlePopupMouseLeave}
+                    onMouseDown={(e) => e.stopPropagation()}
                     onClick={(e) => e.stopPropagation()}
-                    className={`absolute z-50 pointer-events-auto cursor-default w-76 sm:w-88 md:w-96 p-3.5 sm:p-4 rounded-3xl bg-slate-950/95 text-white backdrop-blur-2xl shadow-2xl border border-white/20 dark:border-slate-700/80 animate-pop-check text-left ${
+                    className={`absolute z-50 pointer-events-auto cursor-default w-76 sm:w-88 md:w-96 p-3.5 sm:p-4 rounded-3xl bg-slate-950/95 text-white backdrop-blur-2xl shadow-2xl border border-white/20 dark:border-slate-700/80 text-left ${
                       day <= 7 ? 'top-full mt-2' : 'bottom-full mb-2'
                     } ${
                       dayOfWeek <= 1
@@ -737,7 +738,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                         </p>
                       </div>
                       {totalPending > 0 ? (
-                        <span className="px-2.5 py-1 rounded-full bg-white/20 text-white border border-white/80 text-[10px] font-black shrink-0 flex items-center gap-1 shadow-[0_0_12px_rgba(255,255,255,0.7)] drop-shadow-[0_0_4px_rgba(255,255,255,0.9)] animate-pulse">
+                        <span className="px-2.5 py-1 rounded-full bg-white/20 text-white border border-white/80 text-[10px] font-black shrink-0 flex items-center gap-1 shadow-[0_0_12px_rgba(255,255,255,0.7)] drop-shadow-[0_0_4px_rgba(255,255,255,0.9)]">
                           <span>⚠️</span>
                           <span>{totalPending} Belum Selesai</span>
                         </span>
@@ -752,7 +753,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                     {/* Notifikasi Libur Nasional jika ada */}
                     {isNationalHoliday && (
                       <div className="mt-2 px-2.5 py-1.5 rounded-xl bg-rose-950/80 border border-rose-800/80 text-rose-300 text-xs font-semibold flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping shrink-0" />
+                        <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
                         <span>Libur Nasional: {holidayName}</span>
                       </div>
                     )}
@@ -791,21 +792,23 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                           {pendingMyDaily.map((task) => (
                             <div
                               key={task.id}
-                              className="p-2 rounded-xl border flex items-center justify-between gap-2 text-xs transition-all group bg-slate-900/90 hover:bg-slate-800/90 border-emerald-500/30 hover:border-emerald-400/70"
+                              className="p-2 rounded-xl border flex items-center justify-between gap-2 text-xs transition-colors group bg-slate-900/90 hover:bg-slate-800/90 border-emerald-500/30 hover:border-emerald-400/70"
                             >
                               <div className="flex items-center gap-2.5 min-w-0 flex-1">
                                 <button
                                   type="button"
+                                  onMouseDown={(e) => e.stopPropagation()}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     if (onToggleDailyTask) onToggleDailyTask(task.id);
                                   }}
-                                  className="w-5 h-5 rounded-md border-2 border-emerald-400/80 hover:border-emerald-300 hover:bg-emerald-500/30 text-emerald-300 flex items-center justify-center transition-all cursor-pointer active:scale-90 shrink-0 group/chk"
+                                  className="w-5 h-5 rounded-md border-2 border-emerald-400/80 hover:border-emerald-300 hover:bg-emerald-500/30 text-emerald-300 flex items-center justify-center transition-colors cursor-pointer shrink-0 group/chk"
                                   title="Centang selesai (langsung hilang dari kalender)"
                                 >
                                   <Check className="w-3.5 h-3.5 opacity-0 group-hover/chk:opacity-100 transition-opacity" />
                                 </button>
                                 <span
+                                  onMouseDown={(e) => e.stopPropagation()}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     if (onToggleDailyTask) onToggleDailyTask(task.id);
@@ -818,11 +821,12 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                               </div>
                               <button
                                 type="button"
+                                onMouseDown={(e) => e.stopPropagation()}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (onToggleDailyTask) onToggleDailyTask(task.id);
                                 }}
-                                className="text-[9px] font-bold shrink-0 px-2.5 py-1 rounded-lg border border-emerald-400/50 bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 cursor-pointer transition-all active:scale-95 flex items-center gap-1 shadow-2xs"
+                                className="text-[9px] font-bold shrink-0 px-2.5 py-1 rounded-lg border border-emerald-400/50 bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 cursor-pointer transition-colors flex items-center gap-1 shadow-2xs"
                                 title="Centang selesai (langsung hilang dari kalender)"
                               >
                                 <Check className="w-3 h-3 text-emerald-300" />
@@ -865,7 +869,7 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                                 key={task.id}
                                 className={`p-2.5 rounded-xl ${
                                   status.isMepet
-                                    ? 'task-mepet-deadline-pulse bg-rose-950/60 border border-rose-500/70'
+                                    ? 'bg-rose-950/70 border-2 border-rose-500/80 shadow-md'
                                     : 'bg-white/10 hover:bg-white/15 border border-white/20'
                                 } ${status.borderAccent} flex flex-col gap-1.5 text-xs transition-colors group text-white shadow-xs`}
                               >
@@ -873,16 +877,18 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                                     <button
                                       type="button"
+                                      onMouseDown={(e) => e.stopPropagation()}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (onToggleScheduledTask) onToggleScheduledTask(task.id);
                                       }}
-                                      className="w-5 h-5 rounded-md border-2 border-white/60 hover:border-white hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer active:scale-90 shrink-0 group/chk"
+                                      className="w-5 h-5 rounded-md border-2 border-white/60 hover:border-white hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer shrink-0 group/chk"
                                       title="Centang selesai (langsung hilang dari kalender)"
                                     >
                                       <Check className="w-3.5 h-3.5 opacity-0 group-hover/chk:opacity-100 transition-opacity" />
                                     </button>
                                     <span
+                                      onMouseDown={(e) => e.stopPropagation()}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (onToggleScheduledTask) onToggleScheduledTask(task.id);
@@ -896,11 +902,12 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                                   </div>
                                   <button
                                     type="button"
+                                    onMouseDown={(e) => e.stopPropagation()}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       if (onToggleScheduledTask) onToggleScheduledTask(task.id);
                                     }}
-                                    className={`text-[10px] font-black px-2.5 py-0.5 rounded-full shrink-0 flex items-center gap-1 cursor-pointer transition-all active:scale-95 ${status.badgeStyle}`}
+                                    className={`text-[10px] font-black px-2.5 py-0.5 rounded-full shrink-0 flex items-center gap-1 cursor-pointer transition-colors ${status.badgeStyle}`}
                                     title="Centang selesai (langsung hilang dari kalender)"
                                   >
                                     {status.badgeText}
@@ -929,8 +936,9 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
                 {/* 2. POPUP TAMBAH TUGAS HARIAN: HANYA MUNCUL KETIKA TOMBOL "+" KECIL DIKLIK */}
                 {addingTaskDate === cellDateStr && (
                   <div
+                    onMouseDown={(e) => e.stopPropagation()}
                     onClick={(e) => e.stopPropagation()}
-                    className={`absolute z-50 pointer-events-auto cursor-default w-72 sm:w-80 p-3.5 rounded-3xl bg-slate-950/98 text-white backdrop-blur-2xl shadow-2xl border-2 border-emerald-500/80 animate-pop-check text-left ${
+                    className={`absolute z-50 pointer-events-auto cursor-default w-72 sm:w-80 p-3.5 rounded-3xl bg-slate-950/98 text-white backdrop-blur-2xl shadow-2xl border-2 border-emerald-500/80 text-left ${
                       day <= 7 ? 'top-full mt-2' : 'bottom-full mb-2'
                     } ${
                       dayOfWeek <= 1
